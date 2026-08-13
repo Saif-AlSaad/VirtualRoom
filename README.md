@@ -465,3 +465,9 @@ rather than half-built:
 Furniture geometry is generated procedurally by this codebase — there are no
 third-party 3D assets, and no model licences to track. Inter is loaded from
 `rsms.me` under the SIL Open Font License.
+
+## Author
+*Saif Al Saad*
+BSc in *Software Engineering*
+Major in *Software Testing*
+Daffodil International University
