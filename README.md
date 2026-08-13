@@ -467,7 +467,7 @@ third-party 3D assets, and no model licences to track. Inter is loaded from
 `rsms.me` under the SIL Open Font License.
 
 ## Author
-*Saif Al Saad*
-BSc in *Software Engineering*
-Major in *Software Testing*
+
+**Saif Al Saad**
+BSc in **Software Engineering**, Major in **Software Quality Assurance & Testing**
 Daffodil International University
