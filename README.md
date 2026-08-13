@@ -469,5 +469,9 @@ third-party 3D assets, and no model licences to track. Inter is loaded from
 ## Author
 
 **Saif Al Saad**
-BSc in **Software Engineering**, Major in **Software Quality Assurance & Testing**
+
+Software Engineering Student
+
 Daffodil International University
+
+Major: Software Quality Assurance & Testing (SQAT)
