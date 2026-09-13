@@ -10,6 +10,7 @@ import type {
   SaveStatus,
   Unit,
   Vec2,
+  WallPattern,
   WallSide,
 } from '@/types';
 import { SCHEMA_VERSION } from '@/types';
@@ -115,14 +116,21 @@ export interface EditorState {
   rename: (name: string) => void;
   setUnit: (unit: Unit) => void;
   setRoomDimensions: (dims: Partial<RoomDimensions>) => void;
+  resizeRoomLive: (dims: Partial<RoomDimensions>) => void;
   setWallColor: (color: string) => void;
+  setWallPattern: (pattern: WallPattern) => void;
   setFloor: (floor: { color?: string; pattern?: DocumentState['room']['floor']['pattern'] }) => void;
 
   addOpening: (kind: OpeningKind, wall: WallSide) => string;
   updateOpening: (id: string, patch: Partial<Opening>, live?: boolean) => void;
   removeOpening: (id: string) => void;
 
-  addFurniture: (catalogId: string, at?: Vec2, rotation?: number) => string | null;
+  addFurniture: (
+    catalogId: string,
+    at?: Vec2,
+    rotation?: number,
+    customModelUrl?: string | null
+  ) => string | null;
   updateFurniture: (
     id: string,
     patch: Partial<FurnitureInstance>,
@@ -361,9 +369,21 @@ export const useEditor = create<EditorState>((set, get) => ({
       reflowToRoom(d);
     }),
 
+  resizeRoomLive: (dims) => {
+    get().mutateLive((d) => {
+      Object.assign(d.room.dimensions, dims);
+      reflowToRoom(d);
+    });
+  },
+
   setWallColor: (color) =>
     get().commit('Change wall colour', (d) => {
       d.room.walls.color = color;
+    }),
+
+  setWallPattern: (pattern) =>
+    get().commit('Change wall finish', (d) => {
+      d.room.walls.pattern = pattern;
     }),
 
   setFloor: (floor) =>
@@ -438,7 +458,7 @@ export const useEditor = create<EditorState>((set, get) => ({
       d.room.openings = d.room.openings.filter((o) => o.id !== id);
     }),
 
-  addFurniture: (catalogId, at, rotation) => {
+  addFurniture: (catalogId, at, rotation, customModelUrl) => {
     const catalog = resolveCatalogItem(catalogId);
     if (catalog.id === '__placeholder__') return null;
 
@@ -462,12 +482,13 @@ export const useEditor = create<EditorState>((set, get) => ({
       position,
       rotation: normalizeAngle(rot),
       scale: { x: 1, y: 1, z: 1 },
-      finishId: catalog.finishes[0].id,
+      finishId: catalog.finishes[0]?.id ?? 'default',
       colorOverride: null,
       locked: false,
       visible: true,
       groupId: null,
       note: '',
+      customModelUrl: customModelUrl ?? null,
     };
 
     if (!catalog.wallMounted) {

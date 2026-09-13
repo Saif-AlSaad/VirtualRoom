@@ -9,6 +9,7 @@ import { formatLengthShort } from '@/utils/units';
 import { formatCurrency } from '@/utils/exporters';
 import { Icon } from './Icon';
 import { EmptyState, Skeleton, Tooltip } from './primitives';
+import { CustomModelUpload } from './CustomModelUpload';
 
 /**
  * Furniture catalog sidebar.
@@ -304,6 +305,8 @@ export function Catalog() {
                 </>
               )}
             </div>
+
+            <CustomModelUpload />
 
             <p className="border-t border-ink-200 px-3 py-2 text-[11px] text-ink-400 dark:border-ink-800">
               Drag into the room, or press Enter on a card to place it.

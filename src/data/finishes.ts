@@ -88,6 +88,21 @@ export const WALL_COLORS: Array<{ name: string; color: string }> = [
   { name: 'Charcoal', color: '#4a4d52' },
 ];
 
+export interface WallPatternInfo {
+  id: 'plain' | 'brick' | 'panels' | 'subway' | 'stripes' | 'concrete';
+  name: string;
+  description: string;
+}
+
+export const WALL_PATTERNS: WallPatternInfo[] = [
+  { id: 'plain', name: 'Plaster', description: 'Smooth interior wall paint' },
+  { id: 'brick', name: 'Brick', description: 'Exposed staggered brickwork' },
+  { id: 'panels', name: 'Slats', description: 'Vertical acoustic wood panels' },
+  { id: 'subway', name: 'Tile', description: 'Ceramic subway wall tile' },
+  { id: 'stripes', name: 'Stripes', description: 'Pinstripe designer wallpaper' },
+  { id: 'concrete', name: 'Concrete', description: 'Industrial architectural concrete' },
+];
+
 /** Floor finishes: colour plus the procedural pattern drawn into the texture. */
 export const FLOOR_PRESETS: Array<{
   name: string;

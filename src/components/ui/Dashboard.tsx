@@ -225,13 +225,13 @@ function NewRoomModal({
     text: string,
     min: number,
     max: number
-  ): string | null => {
+  ): string | undefined => {
     const value = Number(text);
     if (text.trim() === '' || !Number.isFinite(value)) return `${label} must be a number.`;
     if (value <= 0) return `${label} must be greater than zero.`;
     if (value < min) return `${label} must be at least ${Math.round(min * 10) / 10} ft.`;
     if (value > max) return `${label} cannot exceed ${Math.round(max)} ft.`;
-    return null;
+    return undefined;
   };
 
   const handleCreate = () => {
@@ -328,6 +328,7 @@ export function Dashboard() {
   const toast = useUI((s) => s.toast);
 
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [newRoomOpen, setNewRoomOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -351,6 +352,13 @@ export function Dashboard() {
   const openProject = (project: Project) => {
     loadProject(project);
     setScreen('editor');
+  };
+
+  const handleCreateCustomRoom = (widthFt: number, lengthFt: number, heightFt: number) => {
+    const project = createRoomFromFeet({ widthFt, lengthFt, heightFt });
+    save(project);
+    openProject(project);
+    setNewRoomOpen(false);
   };
 
   const startFromTemplate = (templateId: string) => {
@@ -441,7 +449,7 @@ export function Dashboard() {
             <Button icon="upload" onClick={() => fileRef.current?.click()}>
               Import
             </Button>
-            <Button variant="primary" icon="plus" onClick={() => startFromTemplate('blank')}>
+            <Button variant="primary" icon="plus" onClick={() => setNewRoomOpen(true)}>
               New room
             </Button>
           </div>
@@ -597,6 +605,12 @@ export function Dashboard() {
             : 'This cannot be undone.'
         }
         confirmLabel="Delete project"
+      />
+
+      <NewRoomModal
+        open={newRoomOpen}
+        onClose={() => setNewRoomOpen(false)}
+        onCreate={handleCreateCustomRoom}
       />
     </div>
   );

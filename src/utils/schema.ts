@@ -260,6 +260,16 @@ export function parseProject(raw: unknown): ParseResult {
         isObject(rawRoom.walls) ? rawRoom.walls.color : undefined,
         base.walls.color
       ),
+      pattern:
+        isObject(rawRoom.walls) &&
+        (rawRoom.walls.pattern === 'plain' ||
+          rawRoom.walls.pattern === 'brick' ||
+          rawRoom.walls.pattern === 'panels' ||
+          rawRoom.walls.pattern === 'subway' ||
+          rawRoom.walls.pattern === 'stripes' ||
+          rawRoom.walls.pattern === 'concrete')
+          ? rawRoom.walls.pattern
+          : 'plain',
     },
     floor: {
       color: color(rawFloor.color, base.floor.color),

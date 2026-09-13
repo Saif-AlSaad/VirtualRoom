@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import type { WallSide } from '@/types';
 import { useEditor } from '@/store/editorStore';
 import { useUI } from '@/store/uiStore';
-import { FLOOR_PRESETS, WALL_COLORS } from '@/data/finishes';
+import { FLOOR_PRESETS, WALL_COLORS, WALL_PATTERNS } from '@/data/finishes';
 import { ROOM_LIMITS, occupiedFloorArea, totalCost } from '@/utils/placement';
 import { WALL_LABEL, WALL_SIDES, floorArea, wallLength } from '@/utils/roomGeometry';
 import { formatArea, formatLength, fromDisplay, parseLength, toDisplay, unitLabel } from '@/utils/units';
@@ -162,6 +162,7 @@ export function RoomPanel() {
   const doc = useEditor((s) => s.doc);
   const setRoomDimensions = useEditor((s) => s.setRoomDimensions);
   const setWallColor = useEditor((s) => s.setWallColor);
+  const setWallPattern = useEditor((s) => s.setWallPattern);
   const setFloor = useEditor((s) => s.setFloor);
   const setUnit = useEditor((s) => s.setUnit);
   const addOpening = useEditor((s) => s.addOpening);
@@ -262,6 +263,38 @@ export function RoomPanel() {
       </Section>
 
       <Section title="Finishes" icon="sparkle">
+        <div className="flex flex-col gap-2">
+          <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
+            Wall pattern
+          </span>
+          <div role="radiogroup" aria-label="Wall pattern" className="grid grid-cols-3 gap-1.5">
+            {WALL_PATTERNS.map((p) => {
+              const active = (doc.room.walls.pattern ?? 'plain') === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setWallPattern(p.id)}
+                  className={clsx(
+                    'flex flex-col items-start gap-0.5 rounded-control border p-1.5 text-left text-[11px]',
+                    'transition-colors duration-150',
+                    active
+                      ? 'border-sage-500 bg-sage-50 text-sage-800 dark:bg-sage-900/30 dark:text-sage-100'
+                      : 'border-ink-200 text-ink-600 hover:border-ink-300 dark:border-ink-700 dark:text-ink-300'
+                  )}
+                >
+                  <span className="font-medium truncate w-full">{p.name}</span>
+                  <span className="text-[9px] text-ink-400 leading-tight truncate w-full">
+                    {p.description}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="flex flex-col gap-2">
           <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
             Wall colour

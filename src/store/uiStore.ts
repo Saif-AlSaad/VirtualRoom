@@ -90,6 +90,7 @@ export interface UIState extends Preferences {
   dragInvalidReason: string | null;
 
   reducedMotion: boolean;
+  measureToolActive: boolean;
 
   setScreen: (screen: Screen) => void;
   setViewMode: (mode: ViewMode) => void;
@@ -127,6 +128,8 @@ export interface UIState extends Preferences {
   noteCatalogUse: (catalogId: string) => void;
   completeOnboarding: () => void;
   setReducedMotion: (on: boolean) => void;
+  setMeasureToolActive: (active: boolean) => void;
+  toggleMeasureTool: () => void;
 }
 
 const PERSISTED_KEYS: Array<keyof Preferences> = [
@@ -192,6 +195,7 @@ export const useUI = create<UIState>((set, get) => ({
     typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  measureToolActive: false,
 
   setScreen: (screen) => set({ screen }),
 
@@ -308,6 +312,8 @@ export const useUI = create<UIState>((set, get) => ({
     persist(get());
   },
   setReducedMotion: (reducedMotion) => set({ reducedMotion }),
+  setMeasureToolActive: (measureToolActive) => set({ measureToolActive }),
+  toggleMeasureTool: () => set((s) => ({ measureToolActive: !s.measureToolActive })),
 }));
 
 /** Resolves the `system` theme choice against the OS setting. */

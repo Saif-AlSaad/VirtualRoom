@@ -140,6 +140,14 @@ export interface CatalogItem {
   /** Multiplicative scale bounds, e.g. [0.8, 1.2]. */
   scaleRange: [number, number];
   availability: 'available' | 'discontinued' | 'custom';
+  /** True when the item is a light source (lamp, ceiling fixture). */
+  isLight?: boolean;
+  /** Local offset of the light emitter from object center. */
+  lightOffset?: Vec3;
+  /** Hex light color (defaults to warm incandescent #ffeaad). */
+  lightColor?: string;
+  /** Point light intensity multiplier. */
+  lightIntensity?: number;
 }
 
 /** A catalog item actually placed in a room. Mutable editor state. */
@@ -160,10 +168,15 @@ export interface FurnitureInstance {
   groupId: string | null;
   /** User-authored note pinned to this object. */
   note: string;
+  /** Optional custom 3D model asset URL or data URI. */
+  customModelUrl?: string | null;
 }
+
+export type WallPattern = 'plain' | 'brick' | 'panels' | 'subway' | 'stripes' | 'concrete';
 
 export interface WallFinish {
   color: string;
+  pattern?: WallPattern;
 }
 
 export interface FloorFinish {

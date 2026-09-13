@@ -51,6 +51,7 @@ export function FurnitureItem({
   const showClearance = useUI((s) => s.showClearance);
   const reducedMotion = useUI((s) => s.reducedMotion);
   const viewMode = useUI((s) => s.viewMode);
+  const timeOfDay = useUI((s) => s.timeOfDay);
 
   const [hovered, setHovered] = useState(false);
 
@@ -210,6 +211,21 @@ export function FurnitureItem({
           <FurnitureModel catalog={catalog} instance={instance} />
         </group>
       </group>
+
+      {/* Dynamic local light emission for lamps and fixtures */}
+      {catalog.isLight && (
+        <pointLight
+          position={[
+            (catalog.lightOffset?.x ?? 0) * instance.scale.x,
+            (catalog.lightOffset?.y ?? h * 0.9),
+            (catalog.lightOffset?.z ?? 0) * instance.scale.z,
+          ]}
+          color={catalog.lightColor ?? '#ffe5b4'}
+          intensity={(catalog.lightIntensity ?? 1.5) * (timeOfDay === 'night' ? 1.6 : 0.7)}
+          distance={5.5}
+          decay={2}
+        />
+      )}
 
       {/* Invisible-but-pickable proxy. A `visible={false}` mesh is skipped by
           the raycaster, so this uses a fully transparent material instead —

@@ -20,6 +20,8 @@ import {
   SelectionDimensions,
   SnapGuides,
 } from './Guides';
+import { MeasureTool } from './MeasureTool';
+import { WallHandles } from './WallHandles';
 
 /**
  * The 3D viewport.
@@ -131,6 +133,8 @@ function SceneContents() {
           <RoomDimensions doc={doc} />
           <SelectionDimensions doc={doc} />
           <InvalidPlacementLabel doc={doc} />
+          <MeasureTool />
+          <WallHandles />
         </>
       )}
     </>

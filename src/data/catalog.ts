@@ -619,6 +619,55 @@ export const CATALOG: CatalogItem[] = [
 
   // ── Decor ─────────────────────────────────────────────────────────────
   item({
+    id: 'floor-lamp',
+    name: 'Standing floor lamp',
+    category: 'decor',
+    tags: ['lamp', 'light', 'floor', 'lighting', 'decor', 'standing'],
+    size: size(0.45, 0.45, 1.55),
+    model: 'floorLamp',
+    price: 149,
+    finishes: METAL_FINISHES,
+    isLight: true,
+    lightOffset: { x: 0, y: 1.45, z: 0 },
+    lightColor: '#ffe5b4',
+    lightIntensity: 1.6,
+  }),
+  item({
+    id: 'plant',
+    name: 'Potted indoor plant',
+    category: 'decor',
+    tags: ['plant', 'pot', 'flower', 'greenery', 'decor', 'nature'],
+    size: size(0.45, 0.45, 0.85),
+    model: 'plant',
+    price: 65,
+    finishes: CERAMIC_FINISHES,
+    collides: true,
+  }),
+  item({
+    id: 'rug-large',
+    name: 'Woven area rug',
+    category: 'decor',
+    tags: ['rug', 'carpet', 'mat', 'floor', 'decor'],
+    size: size(2.2, 1.5, 0.015),
+    model: 'rug',
+    price: 219,
+    finishes: TEXTILE_FINISHES,
+    collides: false,
+  }),
+  item({
+    id: 'wall-mirror',
+    name: 'Framed wall mirror',
+    category: 'decor',
+    tags: ['mirror', 'glass', 'wall', 'reflection', 'decor'],
+    size: size(0.7, 0.05, 1.1),
+    model: 'mirror',
+    price: 129,
+    finishes: METAL_FINISHES,
+    elevation: 0.85,
+    wallMounted: true,
+    collides: false,
+  }),
+  item({
     id: 'wall-art',
     name: 'Framed art',
     category: 'decor',
@@ -637,6 +686,13 @@ const BY_ID = new Map(CATALOG.map((c) => [c.id, c]));
 
 export function getCatalogItem(id: string): CatalogItem | undefined {
   return BY_ID.get(id);
+}
+
+export function registerCustomCatalogItem(newItem: CatalogItem): void {
+  BY_ID.set(newItem.id, newItem);
+  if (!CATALOG.some((c) => c.id === newItem.id)) {
+    CATALOG.unshift(newItem);
+  }
 }
 
 /**

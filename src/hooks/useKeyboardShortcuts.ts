@@ -49,6 +49,7 @@ export const SHORTCUTS: ShortcutDoc[] = [
   { keys: 'C', label: 'Toggle clearance zones', group: 'View' },
   { keys: 'B', label: 'Toggle catalog sidebar', group: 'View' },
   { keys: 'P', label: 'Toggle properties panel', group: 'View' },
+  { keys: 'M', label: 'Toggle tape measure', group: 'View' },
 
   { keys: 'Ctrl+F', label: 'Search the catalog', group: 'General' },
   { keys: '?', label: 'Show this list', group: 'General' },
@@ -113,8 +114,12 @@ export function useKeyboardShortcuts(enabled: boolean): void {
       if (key === 'Escape') {
         // Escape unwinds the most recent thing first: a live drag, then a
         // modal, then presentation mode, then the selection.
+        if (ui.measureToolActive) {
+          ui.setMeasureToolActive(false);
+          return;
+        }
         if (useDrag.getState().mode !== null) {
-          editor.cancelGesture();
+          useEditor.getState().endGesture();
           useDrag.getState().end();
           return;
         }
@@ -202,6 +207,9 @@ export function useKeyboardShortcuts(enabled: boolean): void {
           return;
         case 'p':
           ui.setPropertiesOpen(!ui.propertiesOpen);
+          return;
+        case 'm':
+          ui.toggleMeasureTool();
           return;
         case '?':
           ui.openModal('shortcuts');

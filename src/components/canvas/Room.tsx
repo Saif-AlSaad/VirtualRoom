@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import type { Room as RoomModel, WallSide } from '@/types';
 import { getFloorTexture } from '@/utils/floorTexture';
+import { getWallMaterialProperties, getWallTexture } from '@/utils/wallTexture';
 import { wallLength } from '@/utils/roomGeometry';
 import { buildWallSegments } from '@/utils/wallSegments';
 import { useUI } from '@/store/uiStore';
@@ -96,6 +97,15 @@ function Wall({
   const cornerPad = (geomLength - innerLength) / 2;
   const groupRef = useRef<THREE.Group>(null);
 
+  const wallTexture = useMemo(
+    () => getWallTexture(room.walls, innerLength, height),
+    [room.walls, innerLength, height]
+  );
+  const wallProps = useMemo(
+    () => getWallMaterialProperties(room.walls.pattern),
+    [room.walls.pattern]
+  );
+
   // One material instance shared by every segment of this wall, so the fade
   // animates the wall as a single surface instead of piece by piece.
   const material = useMemo(
@@ -110,8 +120,12 @@ function Wall({
   );
   useEffect(() => () => material.dispose(), [material]);
   useEffect(() => {
-    material.color.set(room.walls.color);
-  }, [material, room.walls.color]);
+    material.map = wallTexture ?? null;
+    material.color.set(wallTexture ? '#ffffff' : room.walls.color);
+    material.roughness = wallProps.roughness;
+    material.metalness = wallProps.metalness;
+    material.needsUpdate = true;
+  }, [material, room.walls.color, wallTexture, wallProps]);
 
   useFrame((state, delta) => {
     const mat = material;

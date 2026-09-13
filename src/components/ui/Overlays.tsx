@@ -261,62 +261,96 @@ export function ViewportControls() {
   const setLightIntensity = useUI((s) => s.setLightIntensity);
   const presentation = useUI((s) => s.presentationMode);
   const viewMode = useUI((s) => s.viewMode);
+  const measureToolActive = useUI((s) => s.measureToolActive);
+  const toggleMeasureTool = useUI((s) => s.toggleMeasureTool);
+  const setMeasureToolActive = useUI((s) => s.setMeasureToolActive);
 
   if (presentation) return null;
 
   return (
-    <div className="pointer-events-auto absolute right-6 top-6 z-20 flex flex-col items-end gap-2">
-      {viewMode !== 'walk' && (
-        <div className="glass flex items-center gap-0.5 rounded-panel p-1 shadow-subtle">
-          {PRESETS.map((p) => (
-            <button
-              key={p.value}
-              type="button"
-              onClick={() => setCameraPreset(p.value)}
-              aria-pressed={cameraPreset === p.value}
-              className={clsx(
-                'rounded-[4px] px-2.5 py-1 text-[11px] font-medium transition-colors duration-150',
-                cameraPreset === p.value
-                  ? 'bg-sage-700 text-sage-50'
-                  : 'text-ink-500 hover:bg-ink-100 hover:text-ink-800 dark:text-ink-400 dark:hover:bg-ink-800'
-              )}
-            >
-              {p.label}
-            </button>
-          ))}
+    <>
+      {measureToolActive && (
+        <div className="glass pointer-events-auto absolute left-1/2 top-4 z-30 flex -translate-x-1/2 items-center gap-3 rounded-panel border border-emerald-500/40 bg-white/95 px-4 py-2 text-caption font-medium shadow-medium dark:bg-ink-900/95">
+          <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-ink-800 dark:text-sage-50">
+            Tape Measure: Click two points to measure distance · Press <kbd className="rounded border border-ink-300 px-1 py-0.5 font-mono text-[10px] dark:border-ink-700">Esc</kbd> to exit
+          </span>
+          <button
+            type="button"
+            onClick={() => setMeasureToolActive(false)}
+            className="rounded-control p-1 text-ink-400 hover:bg-ink-100 hover:text-ink-700 dark:hover:bg-ink-800 dark:hover:text-sage-100"
+            aria-label="Close measure tool"
+          >
+            <Icon name="close" className="h-3.5 w-3.5" />
+          </button>
         </div>
       )}
 
-      <div className="glass flex items-center gap-2 rounded-panel px-2 py-1.5 shadow-subtle">
-        <IconButton
-          size="sm"
-          icon={timeOfDay === 'day' ? 'sun' : 'moon'}
-          label={timeOfDay === 'day' ? 'Switch to night lighting' : 'Switch to day lighting'}
-          onClick={() => setTimeOfDay(timeOfDay === 'day' ? 'night' : 'day')}
-        />
-        <input
-          type="range"
-          min={0}
-          max={2}
-          step={0.05}
-          value={lightIntensity}
-          onChange={(e) => setLightIntensity(Number(e.target.value))}
-          aria-label="Light intensity"
-          className="h-1 w-24 cursor-pointer appearance-none rounded-full bg-ink-200 accent-sage-600 dark:bg-ink-700"
-        />
-        <span className="w-8 text-right text-[11px] tabular-nums text-ink-400">
-          {Math.round(lightIntensity * 100)}%
-        </span>
+      <div className="pointer-events-auto absolute right-6 top-6 z-20 flex flex-col items-end gap-2">
+        <div className="flex items-center gap-2">
+          <div className="glass flex items-center p-1 rounded-panel shadow-subtle">
+            <IconButton
+              size="sm"
+              icon="ruler"
+              label={measureToolActive ? 'Deactivate tape measure (M)' : 'Tape measure (M)'}
+              active={measureToolActive}
+              onClick={toggleMeasureTool}
+            />
+          </div>
+
+          {viewMode !== 'walk' && (
+            <div className="glass flex items-center gap-0.5 rounded-panel p-1 shadow-subtle">
+              {PRESETS.map((p) => (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => setCameraPreset(p.value)}
+                  aria-pressed={cameraPreset === p.value}
+                  className={clsx(
+                    'rounded-[4px] px-2.5 py-1 text-[11px] font-medium transition-colors duration-150',
+                    cameraPreset === p.value
+                      ? 'bg-sage-700 text-sage-50'
+                      : 'text-ink-500 hover:bg-ink-100 hover:text-ink-800 dark:text-ink-400 dark:hover:bg-ink-800'
+                  )}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="glass flex items-center gap-2 rounded-panel px-2 py-1.5 shadow-subtle">
+          <IconButton
+            size="sm"
+            icon={timeOfDay === 'day' ? 'sun' : 'moon'}
+            label={timeOfDay === 'day' ? 'Switch to night lighting' : 'Switch to day lighting'}
+            onClick={() => setTimeOfDay(timeOfDay === 'day' ? 'night' : 'day')}
+          />
+          <input
+            type="range"
+            min={0}
+            max={2}
+            step={0.05}
+            value={lightIntensity}
+            onChange={(e) => setLightIntensity(Number(e.target.value))}
+            aria-label="Light intensity"
+            className="h-1 w-24 cursor-pointer appearance-none rounded-full bg-ink-200 accent-sage-600 dark:bg-ink-700"
+          />
+          <span className="w-8 text-right text-[11px] tabular-nums text-ink-400">
+            {Math.round(lightIntensity * 100)}%
+          </span>
+        </div>
+
+        {viewMode === 'walk' && (
+          <div className="glass rounded-panel px-3 py-2 text-[11px] text-ink-500 shadow-subtle dark:text-ink-400">
+            <strong className="font-semibold text-ink-700 dark:text-ink-200">Walkthrough</strong>
+            <br />
+            W/A/S/D to move · Q/E or ←/→ to turn · Shift to run
+          </div>
+        )}
       </div>
-
-      {viewMode === 'walk' && (
-        <div className="glass rounded-panel px-3 py-2 text-[11px] text-ink-500 shadow-subtle dark:text-ink-400">
-          <strong className="font-semibold text-ink-700 dark:text-ink-200">Walkthrough</strong>
-          <br />
-          W/A/S/D to move · Q/E or ←/→ to turn · Shift to run
-        </div>
-      )}
-    </div>
+    </>
   );
 }
 
