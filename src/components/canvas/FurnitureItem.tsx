@@ -51,6 +51,7 @@ export function FurnitureItem({
   const showClearance = useUI((s) => s.showClearance);
   const reducedMotion = useUI((s) => s.reducedMotion);
   const viewMode = useUI((s) => s.viewMode);
+  const viewerMode = useUI((s) => s.viewerMode);
   const timeOfDay = useUI((s) => s.timeOfDay);
 
   const [hovered, setHovered] = useState(false);
@@ -95,7 +96,7 @@ export function FurnitureItem({
         select(instance.instanceId, additive);
       }
 
-      if (instance.locked) return;
+      if (instance.locked || viewerMode) return;
 
       // Drag every selected object together, each keeping its own offset from
       // the grab point — that is what makes group move feel rigid.
@@ -110,16 +111,28 @@ export function FurnitureItem({
           if (!f || f.locked) return null;
           return {
             id,
-            offset: { x: f.position.x - grab.x, z: f.position.z - grab.z },
+            offset: {
+              x: f.position.x - grab.x,
+              z: f.position.z - grab.z,
+            },
           };
         })
         .filter((t): t is { id: string; offset: { x: number; z: number } } => t !== null);
 
       if (targets.length === 0) return;
+
       beginGesture(targets.length > 1 ? 'Move items' : 'Move item');
       startDrag('move', targets);
     },
-    [instance.instanceId, instance.locked, select, beginGesture, startDrag, viewMode]
+    [
+      beginGesture,
+      instance.instanceId,
+      instance.locked,
+      select,
+      startDrag,
+      viewMode,
+      viewerMode,
+    ]
   );
 
   // ── Selection affordances ───────────────────────────────────────────────
@@ -153,10 +166,11 @@ export function FurnitureItem({
   const clearance = catalog.clearance;
   const hasClearanceZone =
     clearance.front + clearance.back + clearance.left + clearance.right > 0;
+  const elevation = instance.elevation ?? catalog.elevation;
 
   return (
     <group
-      position={[instance.position.x, catalog.elevation, instance.position.z]}
+      position={[instance.position.x, elevation, instance.position.z]}
       rotation={[0, deg2rad(instance.rotation), 0]}
       visible={instance.visible}
     >

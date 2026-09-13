@@ -67,7 +67,7 @@ function presetTransform(
 
 export function CameraRig({ dims }: Props) {
   const controls = useRef<OrbitControlsImpl>(null);
-  const { camera } = useThree();
+  const { camera, gl } = useThree();
 
   const viewMode = useUI((s) => s.viewMode);
   const preset = useUI((s) => s.cameraPreset);
@@ -79,10 +79,11 @@ export function CameraRig({ dims }: Props) {
   const goalPosition = useRef(new THREE.Vector3());
   const goalTarget = useRef(new THREE.Vector3());
 
-  // Walkthrough state: an eye-height camera driven by WASD.
+  // Walkthrough state: an eye-height camera driven by WASD + mouse look / joystick.
   const walk = useRef({
     position: new THREE.Vector3(0, 1.6, 0),
     yaw: 0,
+    pitch: 0,
     keys: new Set<string>(),
     // Reused each frame rather than allocated in the render loop.
     lookTarget: new THREE.Vector3(),
@@ -105,17 +106,20 @@ export function CameraRig({ dims }: Props) {
     // re-triggers the fly-to rather than doing nothing.
   }, [preset, nonce, dims, camera, reducedMotion]);
 
-  // ── Walkthrough input ───────────────────────────────────────────────────
+  // ── Walkthrough input & Pointer Lock ───────────────────────────────────
   useEffect(() => {
-    if (viewMode !== 'walk') return;
+    if (viewMode !== 'walk') {
+      if (document.pointerLockElement === gl.domElement) {
+        document.exitPointerLock();
+      }
+      useUI.getState().setPointerLockActive(false);
+      return;
+    }
 
-    // Captured once so the cleanup releases the same key set it registered,
-    // even if the ref is reassigned in between.
     const state = walk.current;
-
-    // Start the walk from wherever the orbit camera was looking.
     state.position.set(0, 1.6, dims.length * 0.35);
     state.yaw = Math.PI;
+    state.pitch = 0;
 
     const down = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -125,16 +129,52 @@ export function CameraRig({ dims }: Props) {
     const up = (e: KeyboardEvent) => state.keys.delete(e.key.toLowerCase());
     const blur = () => state.keys.clear();
 
+    const onMouseMove = (e: MouseEvent) => {
+      if (document.pointerLockElement === gl.domElement) {
+        const sensitivity = 0.0022;
+        state.yaw -= e.movementX * sensitivity;
+        state.pitch = THREE.MathUtils.clamp(
+          state.pitch - e.movementY * sensitivity,
+          -1.2,
+          1.2
+        );
+      }
+    };
+
+    const onPointerLockChange = () => {
+      const locked = document.pointerLockElement === gl.domElement;
+      useUI.getState().setPointerLockActive(locked);
+    };
+
+    const canvas = gl.domElement;
+    const onCanvasClick = (e: MouseEvent) => {
+      // If clicking inside the canvas without pointer lock, request it
+      if (e.button === 0 && document.pointerLockElement !== canvas) {
+        canvas.requestPointerLock?.();
+      }
+    };
+
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
     window.addEventListener('blur', blur);
+    window.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('pointerlockchange', onPointerLockChange);
+    canvas.addEventListener('click', onCanvasClick);
+
     return () => {
       window.removeEventListener('keydown', down);
       window.removeEventListener('keyup', up);
       window.removeEventListener('blur', blur);
+      window.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('pointerlockchange', onPointerLockChange);
+      canvas.removeEventListener('click', onCanvasClick);
+      if (document.pointerLockElement === canvas) {
+        document.exitPointerLock();
+      }
+      useUI.getState().setPointerLockActive(false);
       state.keys.clear();
     };
-  }, [viewMode, dims.length]);
+  }, [viewMode, dims.length, gl.domElement]);
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05);
@@ -144,9 +184,26 @@ export function CameraRig({ dims }: Props) {
       const speed = state.keys.has('shift') ? 3.4 : 1.9;
       const turn = 2.1;
 
+      // Pitch tilting via keyboard
+      if (state.keys.has('r') || state.keys.has('pageup')) {
+        state.pitch = Math.min(1.2, state.pitch + turn * 0.7 * dt);
+      }
+      if (state.keys.has('f') || state.keys.has('pagedown')) {
+        state.pitch = Math.max(-1.2, state.pitch - turn * 0.7 * dt);
+      }
+
+      // Yaw rotation via keyboard
       if (state.keys.has('arrowleft') || state.keys.has('q')) state.yaw += turn * dt;
       if (state.keys.has('arrowright') || state.keys.has('e')) state.yaw -= turn * dt;
 
+      // External look delta (from virtual look pad / touch drag)
+      const lookDelta = useUI.getState().consumeWalkLookDelta();
+      if (lookDelta.yaw !== 0 || lookDelta.pitch !== 0) {
+        state.yaw += lookDelta.yaw;
+        state.pitch = THREE.MathUtils.clamp(state.pitch + lookDelta.pitch, -1.2, 1.2);
+      }
+
+      // Forward/backward & strafe from keyboard + virtual joystick
       let forward = 0;
       let strafe = 0;
       if (state.keys.has('w') || state.keys.has('arrowup')) forward += 1;
@@ -154,10 +211,14 @@ export function CameraRig({ dims }: Props) {
       if (state.keys.has('a')) strafe -= 1;
       if (state.keys.has('d')) strafe += 1;
 
+      const joystick = useUI.getState().walkJoystick;
+      forward += joystick.forward;
+      strafe += joystick.strafe;
+
       if (forward !== 0 || strafe !== 0) {
         const len = Math.hypot(forward, strafe);
-        const fx = (forward / len) * speed * dt;
-        const sx = (strafe / len) * speed * dt;
+        const fx = (forward / Math.max(len, 1)) * speed * dt;
+        const sx = (strafe / Math.max(len, 1)) * speed * dt;
         state.position.x += Math.sin(state.yaw) * fx + Math.cos(state.yaw) * sx;
         state.position.z += Math.cos(state.yaw) * fx - Math.sin(state.yaw) * sx;
 
@@ -176,10 +237,12 @@ export function CameraRig({ dims }: Props) {
       }
 
       camera.position.lerp(state.position, 1 - Math.exp(-dt * 18));
+      const cosPitch = Math.cos(state.pitch);
+      const sinPitch = Math.sin(state.pitch);
       state.lookTarget.set(
-        state.position.x + Math.sin(state.yaw),
-        1.55,
-        state.position.z + Math.cos(state.yaw)
+        state.position.x + Math.sin(state.yaw) * cosPitch,
+        state.position.y + sinPitch,
+        state.position.z + Math.cos(state.yaw) * cosPitch
       );
       camera.lookAt(state.lookTarget);
       return;

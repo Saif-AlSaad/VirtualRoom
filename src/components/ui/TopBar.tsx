@@ -222,6 +222,8 @@ export function TopBar() {
   const setScreen = useUI((s) => s.setScreen);
   const viewMode = useUI((s) => s.viewMode);
   const setViewMode = useUI((s) => s.setViewMode);
+  const viewerMode = useUI((s) => s.viewerMode);
+  const setViewerMode = useUI((s) => s.setViewerMode);
   const theme = useUI((s) => s.theme);
   const setTheme = useUI((s) => s.setTheme);
   const openModal = useUI((s) => s.openModal);
@@ -284,6 +286,20 @@ export function TopBar() {
             { value: 'walk', label: 'Walk', icon: 'walk' },
           ]}
           onChange={setViewMode}
+        />
+        <IconButton
+          icon="eye"
+          active={viewerMode}
+          label={viewerMode ? 'Viewer Mode (Read-only) — Click to edit' : 'Edit Mode — Click for Read-only Viewer'}
+          onClick={() => {
+            const next = !viewerMode;
+            setViewerMode(next);
+            toast(next ? 'Viewer Mode enabled' : 'Edit Mode enabled', {
+              description: next
+                ? 'Tap items to inspect without dragging.'
+                : 'Full editing enabled.',
+            });
+          }}
         />
         <IconButton
           icon={isDark ? 'sun' : 'moon'}

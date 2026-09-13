@@ -148,6 +148,14 @@ export function useKeyboardShortcuts(enabled: boolean): void {
         if (!event.altKey || !key.startsWith('Arrow')) return;
       }
 
+      // When in walkthrough mode, movement keys control camera navigation
+      if (ui.viewMode === 'walk') {
+        if (lower === '1') ui.setViewMode('3d');
+        if (lower === '2') ui.setViewMode('2d');
+        if (lower === 'n') ui.setTimeOfDay(ui.timeOfDay === 'day' ? 'night' : 'day');
+        return;
+      }
+
       // ── Movement ───────────────────────────────────────────────────────
       if (key.startsWith('Arrow')) {
         if (editor.selection.length === 0) return;

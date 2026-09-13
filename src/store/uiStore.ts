@@ -91,9 +91,18 @@ export interface UIState extends Preferences {
 
   reducedMotion: boolean;
   measureToolActive: boolean;
+  viewerMode: boolean;
+  pointerLockActive: boolean;
+  walkJoystick: { forward: number; strafe: number };
+  walkLookDelta: { yaw: number; pitch: number };
 
   setScreen: (screen: Screen) => void;
   setViewMode: (mode: ViewMode) => void;
+  setViewerMode: (on: boolean) => void;
+  setPointerLockActive: (active: boolean) => void;
+  setWalkJoystick: (joystick: { forward: number; strafe: number }) => void;
+  addWalkLookDelta: (delta: { yaw: number; pitch: number }) => void;
+  consumeWalkLookDelta: () => { yaw: number; pitch: number };
   setCameraPreset: (preset: CameraPreset) => void;
   setTimeOfDay: (time: TimeOfDay) => void;
   setLightIntensity: (value: number) => void;
@@ -196,8 +205,31 @@ export const useUI = create<UIState>((set, get) => ({
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   measureToolActive: false,
+  viewerMode:
+    typeof window !== 'undefined' &&
+    (window.innerWidth < 1024 || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0)),
+  pointerLockActive: false,
+  walkJoystick: { forward: 0, strafe: 0 },
+  walkLookDelta: { yaw: 0, pitch: 0 },
 
   setScreen: (screen) => set({ screen }),
+  setViewerMode: (viewerMode) => set({ viewerMode }),
+  setPointerLockActive: (pointerLockActive) => set({ pointerLockActive }),
+  setWalkJoystick: (walkJoystick) => set({ walkJoystick }),
+  addWalkLookDelta: (delta) =>
+    set((s) => ({
+      walkLookDelta: {
+        yaw: s.walkLookDelta.yaw + delta.yaw,
+        pitch: s.walkLookDelta.pitch + delta.pitch,
+      },
+    })),
+  consumeWalkLookDelta: () => {
+    const current = get().walkLookDelta;
+    if (current.yaw !== 0 || current.pitch !== 0) {
+      set({ walkLookDelta: { yaw: 0, pitch: 0 } });
+    }
+    return current;
+  },
 
   setViewMode: (viewMode) =>
     set((s) => ({

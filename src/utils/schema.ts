@@ -197,6 +197,14 @@ function parseFurniture(
         ? raw.groupId
         : null,
     note: text(raw.note, '', 500),
+    customModelUrl:
+      typeof raw.customModelUrl === 'string' && raw.customModelUrl.length <= 10000000
+        ? raw.customModelUrl
+        : null,
+    elevation:
+      typeof raw.elevation === 'number' && Number.isFinite(raw.elevation)
+        ? clamp(raw.elevation, 0, 20)
+        : undefined,
   };
 }
 

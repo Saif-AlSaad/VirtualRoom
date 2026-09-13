@@ -15,6 +15,8 @@ import { useUI } from '@/store/uiStore';
 import { pickFloor } from '@/utils/pointer';
 import { useAutosave, useOnlineStatus } from '@/hooks/useAutosave';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { WalkControls } from './ui/WalkControls';
+import { MobileInspector } from './ui/MobileInspector';
 
 /**
  * The editor shell.
@@ -126,6 +128,8 @@ export function Editor() {
           <ViewportControls />
           <MiniMap />
           <ContextToolbar />
+          <WalkControls />
+          <MobileInspector />
           <Onboarding />
           <PresentationExit />
 

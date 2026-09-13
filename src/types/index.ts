@@ -170,7 +170,12 @@ export interface FurnitureInstance {
   note: string;
   /** Optional custom 3D model asset URL or data URI. */
   customModelUrl?: string | null;
+  /** Vertical elevation above floor in metres. Overrides catalog default when set. */
+  elevation?: number;
 }
+
+export type AlignMode = 'left' | 'center-x' | 'right' | 'back' | 'center-z' | 'front';
+export type DistributeAxis = 'x' | 'z' | 'auto';
 
 export type WallPattern = 'plain' | 'brick' | 'panels' | 'subway' | 'stripes' | 'concrete';
 

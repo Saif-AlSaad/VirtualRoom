@@ -225,3 +225,37 @@ describe('save bookkeeping', () => {
     expect(useEditor.getState().saveStatus).toBe('saving');
   });
 });
+
+describe('alignment and elevation', () => {
+  beforeEach(reset);
+
+  it('aligns selected furniture and can be undone', () => {
+    const id1 = useEditor.getState().addFurniture(CHAIR, { x: -1, z: 0 });
+    const id2 = useEditor.getState().addFurniture(CHAIR, { x: 2, z: 0 });
+    useEditor.getState().selectMany([id1!, id2!]);
+
+    useEditor.getState().alignSelection('left');
+    const f1 = useEditor.getState().doc.furniture.find((f) => f.instanceId === id1);
+    const f2 = useEditor.getState().doc.furniture.find((f) => f.instanceId === id2);
+
+    expect(f1!.position.x).toBeCloseTo(f2!.position.x);
+
+    // Undo restores previous position
+    useEditor.getState().undo();
+    const f2Prev = useEditor.getState().doc.furniture.find((f) => f.instanceId === id2);
+    expect(f2Prev!.position.x).toBeCloseTo(2);
+  });
+
+  it('updates elevation and can be undone', () => {
+    const id = useEditor.getState().addFurniture(SOFA);
+    useEditor.getState().updateFurniture(id!, { elevation: 0.75 });
+
+    let sofa = useEditor.getState().doc.furniture.find((f) => f.instanceId === id);
+    expect(sofa!.elevation).toBe(0.75);
+
+    useEditor.getState().undo();
+    sofa = useEditor.getState().doc.furniture.find((f) => f.instanceId === id);
+    expect(sofa!.elevation).toBeUndefined();
+  });
+});
+

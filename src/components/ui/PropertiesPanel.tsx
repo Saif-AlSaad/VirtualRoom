@@ -70,6 +70,9 @@ function SelectionInspector() {
   const setVisible = useEditor((s) => s.setVisible);
   const groupSelection = useEditor((s) => s.groupSelection);
   const ungroupSelection = useEditor((s) => s.ungroupSelection);
+  const alignSelection = useEditor((s) => s.alignSelection);
+  const distributeSelection = useEditor((s) => s.distributeSelection);
+  const snapSelectionToFace = useEditor((s) => s.snapSelectionToFace);
   const currency = useUI((s) => s.currency);
 
   const unit = doc.unit;
@@ -112,6 +115,72 @@ function SelectionInspector() {
             <IssueList issues={issues} />
           </Section>
         )}
+
+        <Section title="Alignment & Layout" icon="layers">
+          <div>
+            <span className="mb-1.5 block text-caption font-medium text-ink-500 dark:text-ink-400">
+              Align Edges & Centers
+            </span>
+            <div className="grid grid-cols-3 gap-1.5">
+              <Button size="sm" icon="align-left" onClick={() => alignSelection('left')}>
+                Left
+              </Button>
+              <Button size="sm" icon="align-center" onClick={() => alignSelection('center-x')}>
+                Center X
+              </Button>
+              <Button size="sm" icon="align-right" onClick={() => alignSelection('right')}>
+                Right
+              </Button>
+              <Button size="sm" icon="align-left" onClick={() => alignSelection('back')}>
+                Back
+              </Button>
+              <Button size="sm" icon="align-center" onClick={() => alignSelection('center-z')}>
+                Center Z
+              </Button>
+              <Button size="sm" icon="align-right" onClick={() => alignSelection('front')}>
+                Front
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-3">
+            <span className="mb-1.5 block text-caption font-medium text-ink-500 dark:text-ink-400">
+              Distribution & Snapping
+            </span>
+            <div className="grid grid-cols-2 gap-1.5">
+              <Button
+                size="sm"
+                icon="distribute"
+                onClick={() => distributeSelection('x')}
+                disabled={selection.length < 3}
+              >
+                Distribute X
+              </Button>
+              <Button
+                size="sm"
+                icon="distribute"
+                onClick={() => distributeSelection('z')}
+                disabled={selection.length < 3}
+              >
+                Distribute Z
+              </Button>
+              <Button
+                size="sm"
+                icon="snap-face"
+                onClick={() => snapSelectionToFace('x')}
+              >
+                Snap Face X
+              </Button>
+              <Button
+                size="sm"
+                icon="snap-face"
+                onClick={() => snapSelectionToFace('z')}
+              >
+                Snap Face Z
+              </Button>
+            </div>
+          </div>
+        </Section>
 
         <Section title="Actions" icon="layers">
           <div className="grid grid-cols-2 gap-2">
@@ -231,6 +300,51 @@ function SelectionInspector() {
               commitPatch({ position: { ...instance.position, z: fromDisplay(v, unit) } })
             }
           />
+        </div>
+
+        <NumberField
+          label="Elevation (Y)"
+          suffix={unitLabel(unit)}
+          value={toDisplay(instance.elevation ?? catalog.elevation, unit)}
+          min={0}
+          max={toDisplay(doc.room.dimensions.height, unit)}
+          step={unit === 'ft' ? 0.25 : 0.05}
+          showSlider
+          disabled={instance.locked}
+          format={(v) => v.toFixed(2)}
+          parse={(t) => {
+            const m = parseLength(t, unit);
+            return m === null ? null : toDisplay(m, unit);
+          }}
+          onChange={(v) => livePatch({ elevation: fromDisplay(v, unit) })}
+          onCommit={(v) => {
+            beginGesture('Change elevation');
+            livePatch({ elevation: fromDisplay(v, unit) });
+            endGesture();
+          }}
+        />
+        <div className="flex gap-1.5">
+          {[
+            { label: 'Floor', m: 0 },
+            { label: 'Table', m: 0.75 },
+            { label: 'Counter', m: 0.9 },
+            { label: 'Shelf', m: 1.2 },
+            { label: 'Wall', m: 1.5 },
+          ].map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              disabled={instance.locked}
+              onClick={() => {
+                beginGesture('Change elevation');
+                commitPatch({ elevation: preset.m });
+                endGesture();
+              }}
+              className="flex-1 rounded-control border border-ink-200 py-1 text-[11px] font-medium text-ink-600 transition-colors duration-150 hover:border-sage-400 hover:text-sage-700 disabled:opacity-40 dark:border-ink-700 dark:text-ink-300"
+            >
+              {preset.label}
+            </button>
+          ))}
         </div>
 
         <NumberField

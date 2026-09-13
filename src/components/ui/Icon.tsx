@@ -48,7 +48,14 @@ export type IconName =
   | 'more'
   | 'present'
   | 'magnet'
-  | 'cloud-off';
+  | 'cloud-off'
+  | 'align-left'
+  | 'align-center'
+  | 'align-right'
+  | 'distribute'
+  | 'snap-face'
+  | 'touch'
+  | 'joystick';
 
 const PATHS: Record<IconName, string> = {
   plus: 'M12 5v14M5 12h14',
@@ -94,6 +101,13 @@ const PATHS: Record<IconName, string> = {
   present: 'M3 4h18M4 4v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V4M12 15v5M9 20h6',
   magnet: 'M6 4v8a6 6 0 0 0 12 0V4h-4v8a2 2 0 0 1-4 0V4H6zM6 8h4M14 8h4',
   'cloud-off': 'M3 3l18 18M7 17h9a4 4 0 0 0 1.6-7.7A6 6 0 0 0 8.2 7.6M5.5 9.5A4 4 0 0 0 7 17',
+  'align-left': 'M4 4v16M8 6h10v4H8zM8 14h6v4H8z',
+  'align-center': 'M12 3v18M5 6h14v4H5zM7 14h10v4H7z',
+  'align-right': 'M20 4v16M6 6h10v4H6zM10 14h6v4H10z',
+  distribute: 'M4 5v14M20 5v14M9 8h6v8H9z',
+  'snap-face': 'M4 6h7v12H4zM11 6h9v12h-9z',
+  touch: 'M12 4a2 2 0 0 0-2 2v7.5l-1.5-1.5a1.8 1.8 0 0 0-2.5 2.5l5 5a7 7 0 0 0 10-5V10a2 2 0 0 0-4 0v1a2 2 0 0 0-4 0V6a2 2 0 0 0-2-2z',
+  joystick: 'M6 12a6 6 0 0 0 12 0v-2H6v2zM12 4v6M9 4h6',
 };
 
 interface Props {

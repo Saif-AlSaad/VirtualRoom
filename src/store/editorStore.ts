@@ -12,7 +12,14 @@ import type {
   Vec2,
   WallPattern,
   WallSide,
+  AlignMode,
+  DistributeAxis,
 } from '@/types';
+import {
+  calculateAlignedPositions,
+  calculateDistributedPositions,
+  calculateSnappedFacePositions,
+} from '@/utils/alignment';
 import { SCHEMA_VERSION } from '@/types';
 import { createId, createProjectId } from '@/utils/id';
 import { resolveCatalogItem } from '@/data/catalog';
@@ -144,6 +151,9 @@ export interface EditorState {
   setVisible: (ids: string[], visible: boolean) => void;
   groupSelection: () => void;
   ungroupSelection: () => void;
+  alignSelection: (mode: AlignMode) => void;
+  distributeSelection: (axis?: DistributeAxis) => void;
+  snapSelectionToFace: (axis?: DistributeAxis) => void;
   clearFurniture: () => void;
   applyTemplateFurniture: (
     items: Array<{ catalogId: string; x: number; z: number; rotation: number }>
@@ -654,6 +664,75 @@ export const useEditor = create<EditorState>((set, get) => ({
     get().commit('Ungroup items', (d) => {
       for (const f of d.furniture) {
         if (selection.includes(f.instanceId)) f.groupId = null;
+      }
+    });
+  },
+
+  alignSelection: (mode) => {
+    const { selection, doc } = get();
+    if (selection.length <= 1) return;
+    const selectedItems = doc.furniture.filter((f) => selection.includes(f.instanceId));
+    const newPositions = calculateAlignedPositions(selectedItems, mode);
+    if (newPositions.size === 0) return;
+
+    get().commit(`Align items ${mode}`, (d) => {
+      const dims = d.room.dimensions;
+      for (const [id, pos] of newPositions.entries()) {
+        const item = d.furniture.find((f) => f.instanceId === id);
+        if (!item || item.locked) continue;
+        const next = clampRectToRoom(
+          { ...instanceRect(item), cx: pos.x, cz: pos.z },
+          dims.width,
+          dims.length
+        );
+        item.position.x = next.x;
+        item.position.z = next.z;
+      }
+    });
+  },
+
+  distributeSelection: (axis = 'auto') => {
+    const { selection, doc } = get();
+    if (selection.length < 3) return;
+    const selectedItems = doc.furniture.filter((f) => selection.includes(f.instanceId));
+    const newPositions = calculateDistributedPositions(selectedItems, axis);
+    if (newPositions.size === 0) return;
+
+    get().commit('Distribute items', (d) => {
+      const dims = d.room.dimensions;
+      for (const [id, pos] of newPositions.entries()) {
+        const item = d.furniture.find((f) => f.instanceId === id);
+        if (!item || item.locked) continue;
+        const next = clampRectToRoom(
+          { ...instanceRect(item), cx: pos.x, cz: pos.z },
+          dims.width,
+          dims.length
+        );
+        item.position.x = next.x;
+        item.position.z = next.z;
+      }
+    });
+  },
+
+  snapSelectionToFace: (axis = 'auto') => {
+    const { selection, doc } = get();
+    if (selection.length < 2) return;
+    const selectedItems = doc.furniture.filter((f) => selection.includes(f.instanceId));
+    const newPositions = calculateSnappedFacePositions(selectedItems, axis);
+    if (newPositions.size === 0) return;
+
+    get().commit('Snap items to face', (d) => {
+      const dims = d.room.dimensions;
+      for (const [id, pos] of newPositions.entries()) {
+        const item = d.furniture.find((f) => f.instanceId === id);
+        if (!item || item.locked) continue;
+        const next = clampRectToRoom(
+          { ...instanceRect(item), cx: pos.x, cz: pos.z },
+          dims.width,
+          dims.length
+        );
+        item.position.x = next.x;
+        item.position.z = next.z;
       }
     });
   },

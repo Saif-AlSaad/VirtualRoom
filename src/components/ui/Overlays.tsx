@@ -35,6 +35,9 @@ export function ContextToolbar() {
   const setLocked = useEditor((s) => s.setLocked);
   const setVisible = useEditor((s) => s.setVisible);
   const clearSelection = useEditor((s) => s.clearSelection);
+  const alignSelection = useEditor((s) => s.alignSelection);
+  const distributeSelection = useEditor((s) => s.distributeSelection);
+  const snapSelectionToFace = useEditor((s) => s.snapSelectionToFace);
   const presentation = useUI((s) => s.presentationMode);
   const reducedMotion = useUI((s) => s.reducedMotion);
 
@@ -101,6 +104,42 @@ export function ContextToolbar() {
             disabled={anyLocked}
             onClick={deleteSelection}
           />
+          {selection.length > 1 && (
+            <>
+              <span className="mx-0.5 h-6 w-px bg-ink-200 dark:bg-ink-700" />
+              <IconButton
+                size="sm"
+                icon="align-left"
+                label="Align Left"
+                onClick={() => alignSelection('left')}
+              />
+              <IconButton
+                size="sm"
+                icon="align-center"
+                label="Align Center X"
+                onClick={() => alignSelection('center-x')}
+              />
+              <IconButton
+                size="sm"
+                icon="align-right"
+                label="Align Right"
+                onClick={() => alignSelection('right')}
+              />
+              <IconButton
+                size="sm"
+                icon="distribute"
+                label="Distribute Evenly"
+                disabled={selection.length < 3}
+                onClick={() => distributeSelection('auto')}
+              />
+              <IconButton
+                size="sm"
+                icon="snap-face"
+                label="Snap to Face"
+                onClick={() => snapSelectionToFace('auto')}
+              />
+            </>
+          )}
           <span className="mx-0.5 h-6 w-px bg-ink-200 dark:bg-ink-700" />
           <IconButton size="sm" icon="close" label="Deselect (Esc)" onClick={clearSelection} />
         </motion.div>
