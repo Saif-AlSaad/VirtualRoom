@@ -259,3 +259,57 @@ describe('alignment and elevation', () => {
   });
 });
 
+describe('interior partition walls and lighting', () => {
+  beforeEach(reset);
+
+  it('adds, updates, duplicates, and deletes a partition wall with undo/redo', () => {
+    const id = useEditor.getState().addPartition('half');
+    expect(id).toBeDefined();
+
+    const partitions = useEditor.getState().doc.room.partitions ?? [];
+    expect(partitions).toHaveLength(1);
+    expect(partitions[0].height).toBe(1.1);
+
+    // Update length
+    useEditor.getState().updatePartition(id, { length: 3.2 });
+    expect(useEditor.getState().doc.room.partitions?.[0].length).toBe(3.2);
+
+    // Duplicate
+    const dupId = useEditor.getState().duplicatePartition(id);
+    expect(dupId).toBeDefined();
+    expect(useEditor.getState().doc.room.partitions).toHaveLength(2);
+
+    // Undo duplicate
+    useEditor.getState().undo();
+    expect(useEditor.getState().doc.room.partitions).toHaveLength(1);
+
+    // Delete
+    useEditor.getState().removePartition(id);
+    expect(useEditor.getState().doc.room.partitions).toHaveLength(0);
+
+    // Undo delete
+    useEditor.getState().undo();
+    expect(useEditor.getState().doc.room.partitions).toHaveLength(1);
+  });
+
+  it('updates furniture lighting and supports undo', () => {
+    const id = useEditor.getState().addFurniture('floor-lamp', { x: 0, z: 0 });
+    expect(id).toBeDefined();
+
+    useEditor.getState().updateFurnitureLight(id!, {
+      lightEnabled: false,
+      lightIntensity: 2.5,
+      lightColor: '#ffddaa',
+    });
+
+    let f = useEditor.getState().doc.furniture.find((x) => x.instanceId === id);
+    expect(f?.lightEnabled).toBe(false);
+    expect(f?.lightIntensity).toBe(2.5);
+    expect(f?.lightColor).toBe('#ffddaa');
+
+    useEditor.getState().undo();
+    f = useEditor.getState().doc.furniture.find((x) => x.instanceId === id);
+    expect(f?.lightEnabled).toBeUndefined();
+  });
+});
+

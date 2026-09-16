@@ -104,6 +104,9 @@ function FurnitureModelImpl({ catalog, instance }: Props) {
     color: instance.colorOverride ?? finish.color,
     roughness: finish.roughness,
     metalness: finish.metalness,
+    lightOn: instance.lightEnabled ?? true,
+    lightColor: instance.lightColor ?? catalog.lightColor,
+    lightIntensity: instance.lightIntensity ?? catalog.lightIntensity,
   });
 }
 
@@ -113,5 +116,8 @@ export const FurnitureModel = memo(
     prev.catalog.id === next.catalog.id &&
     prev.instance.finishId === next.instance.finishId &&
     prev.instance.colorOverride === next.instance.colorOverride &&
-    prev.instance.customModelUrl === next.instance.customModelUrl
+    prev.instance.customModelUrl === next.instance.customModelUrl &&
+    prev.instance.lightEnabled === next.instance.lightEnabled &&
+    prev.instance.lightColor === next.instance.lightColor &&
+    prev.instance.lightIntensity === next.instance.lightIntensity
 );

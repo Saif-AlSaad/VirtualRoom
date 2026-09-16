@@ -227,17 +227,20 @@ export function FurnitureItem({
       </group>
 
       {/* Dynamic local light emission for lamps and fixtures */}
-      {catalog.isLight && (
+      {catalog.isLight && (instance.lightEnabled ?? true) && (
         <pointLight
           position={[
             (catalog.lightOffset?.x ?? 0) * instance.scale.x,
             (catalog.lightOffset?.y ?? h * 0.9),
             (catalog.lightOffset?.z ?? 0) * instance.scale.z,
           ]}
-          color={catalog.lightColor ?? '#ffe5b4'}
-          intensity={(catalog.lightIntensity ?? 1.5) * (timeOfDay === 'night' ? 1.6 : 0.7)}
-          distance={5.5}
-          decay={2}
+          color={instance.lightColor ?? catalog.lightColor ?? '#ffe5b4'}
+          intensity={
+            (instance.lightIntensity ?? catalog.lightIntensity ?? 1.5) *
+            (timeOfDay === 'night' ? 2.2 : 0.85)
+          }
+          distance={7.0}
+          decay={1.8}
         />
       )}
 

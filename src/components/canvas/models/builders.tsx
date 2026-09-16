@@ -27,6 +27,9 @@ export interface ModelProps {
   color: string;
   roughness: number;
   metalness: number;
+  lightOn?: boolean;
+  lightColor?: string;
+  lightIntensity?: number;
 }
 
 type Builder = (p: ModelProps) => JSX.Element;
@@ -641,7 +644,7 @@ export const MODEL_BUILDERS: Record<ModelKind, Builder> = {
   },
 
   floorLamp: (p) => {
-    const { w, h, color, metalness } = p;
+    const { w, h, color, metalness, lightOn = true, lightColor = '#ffe5b4' } = p;
     const shadeH = Math.min(0.3, h * 0.2);
     return (
       <group>
@@ -652,14 +655,19 @@ export const MODEL_BUILDERS: Record<ModelKind, Builder> = {
           radius={w * 0.5}
           radiusTop={w * 0.36}
           height={shadeH}
-          color="#f7f1e3"
-          roughness={0.85}
+          color={lightOn ? '#fff8eb' : '#e0dbcf'}
+          roughness={0.8}
           segments={22}
         />
-        {/* Warm emissive disc so the lamp reads as "on" at night */}
-        <mesh position={[0, h - shadeH + 0.01, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        {/* Warm emissive bulb/disc that glows when light is on */}
+        <mesh position={[0, h - shadeH + 0.02, 0]} rotation={[Math.PI / 2, 0, 0]}>
           <circleGeometry args={[w * 0.34, 20]} />
-          <meshStandardMaterial color="#fff3d6" emissive="#ffcf87" emissiveIntensity={0.6} />
+          <meshStandardMaterial
+            color={lightOn ? lightColor : '#88847d'}
+            emissive={lightOn ? lightColor : '#000000'}
+            emissiveIntensity={lightOn ? 1.6 : 0.0}
+            roughness={0.2}
+          />
         </mesh>
       </group>
     );
@@ -730,6 +738,106 @@ export const MODEL_BUILDERS: Record<ModelKind, Builder> = {
         <Slab at={[0, h / 2, d / 2 + 0.002]} size={[w - 0.07, 0.004, h - 0.07]} color="#e8e4d8" roughness={0.9} />
         <Slab at={[-w * 0.12, h * 0.56, d / 2 + 0.005]} size={[w * 0.4, 0.003, h * 0.34]} color="#8ca08a" roughness={0.9} />
         <Slab at={[w * 0.18, h * 0.36, d / 2 + 0.005]} size={[w * 0.3, 0.003, h * 0.26]} color="#c2a17d" roughness={0.9} />
+      </group>
+    );
+  },
+
+  pendantLamp: (p) => {
+    const { w, h, color, metalness, lightOn = true, lightColor = '#ffeaad' } = p;
+    const shadeH = Math.min(0.28, h * 0.4);
+    const cordH = Math.max(0.1, h - shadeH);
+    return (
+      <group>
+        {/* Ceiling canopy mount */}
+        <Cyl at={[0, h - 0.015, 0]} radius={0.06} height={0.03} color={color} metalness={metalness} roughness={0.3} segments={16} />
+        {/* Suspension cord / brass rod */}
+        <Cyl at={[0, h - cordH / 2, 0]} radius={0.008} height={cordH} color="#2b2d30" metalness={0.7} roughness={0.3} segments={8} />
+        {/* Flared shade */}
+        <Cyl
+          at={[0, shadeH / 2, 0]}
+          radius={w * 0.5}
+          radiusTop={w * 0.22}
+          height={shadeH}
+          color={color}
+          metalness={metalness}
+          roughness={0.35}
+          segments={24}
+        />
+        {/* Glowing bulb fixture inside */}
+        <mesh position={[0, shadeH * 0.35, 0]}>
+          <sphereGeometry args={[w * 0.14, 16, 16]} />
+          <meshStandardMaterial
+            color={lightOn ? lightColor : '#66635e'}
+            emissive={lightOn ? lightColor : '#000000'}
+            emissiveIntensity={lightOn ? 2.0 : 0.0}
+            roughness={0.1}
+          />
+        </mesh>
+      </group>
+    );
+  },
+
+  deskLamp: (p) => {
+    const { w, h, color, metalness, lightOn = true, lightColor = '#fff3d6' } = p;
+    return (
+      <group>
+        {/* Weighted round base */}
+        <Cyl at={[0, 0.012, 0]} radius={w * 0.38} height={0.024} color={color} metalness={metalness} roughness={0.3} segments={18} />
+        {/* Lower stem angled */}
+        <mesh position={[0.02, h * 0.26, 0]} rotation={[0, 0, -0.22]}>
+          <cylinderGeometry args={[0.01, 0.01, h * 0.5, 10]} />
+          <meshStandardMaterial color={color} metalness={metalness} roughness={0.3} />
+        </mesh>
+        {/* Pivot knuckle */}
+        <mesh position={[0.08, h * 0.5, 0]}>
+          <sphereGeometry args={[0.022, 10, 10]} />
+          <meshStandardMaterial color="#c29b38" metalness={0.8} roughness={0.3} />
+        </mesh>
+        {/* Upper arm */}
+        <mesh position={[0.04, h * 0.72, 0]} rotation={[0, 0, 0.32]}>
+          <cylinderGeometry args={[0.009, 0.009, h * 0.45, 10]} />
+          <meshStandardMaterial color={color} metalness={metalness} roughness={0.3} />
+        </mesh>
+        {/* Conical shade pointing downward */}
+        <group position={[-0.02, h * 0.88, 0]} rotation={[0, 0, 0.5]}>
+          <Cyl at={[0, 0, 0]} radius={w * 0.36} radiusTop={w * 0.16} height={h * 0.24} color={color} metalness={metalness} roughness={0.3} segments={18} />
+          {/* Bulb inside shade */}
+          <mesh position={[0, -0.04, 0]}>
+            <sphereGeometry args={[w * 0.11, 14, 14]} />
+            <meshStandardMaterial
+              color={lightOn ? lightColor : '#5c5a55'}
+              emissive={lightOn ? lightColor : '#000000'}
+              emissiveIntensity={lightOn ? 1.8 : 0.0}
+            />
+          </mesh>
+        </group>
+      </group>
+    );
+  },
+
+  wallSconce: (p) => {
+    const { w, d, h, color, metalness, lightOn = true, lightColor = '#ffddaa' } = p;
+    return (
+      <group>
+        {/* Wall backplate */}
+        <Slab at={[0, h / 2, -d * 0.35]} size={[w * 0.7, d * 0.3, h * 0.7]} color={color} metalness={metalness} roughness={0.3} />
+        {/* Mounting arm */}
+        <Cyl at={[0, h / 2, -d * 0.1]} radius={0.014} height={d * 0.5} color={color} metalness={metalness} roughness={0.3} segments={10} />
+        {/* Vertical frosted glass / diffuser tube */}
+        <mesh position={[0, h / 2, d * 0.2]}>
+          <cylinderGeometry args={[w * 0.35, w * 0.35, h * 0.9, 20]} />
+          <meshStandardMaterial
+            color={lightOn ? lightColor : '#d1cbbd'}
+            emissive={lightOn ? lightColor : '#000000'}
+            emissiveIntensity={lightOn ? 1.5 : 0.0}
+            roughness={0.2}
+            transparent
+            opacity={0.92}
+          />
+        </mesh>
+        {/* Metal caps on top and bottom of diffuser */}
+        <Cyl at={[0, h * 0.97, d * 0.2]} radius={w * 0.38} height={0.03} color={color} metalness={metalness} roughness={0.3} segments={18} />
+        <Cyl at={[0, h * 0.03, d * 0.2]} radius={w * 0.38} height={0.03} color={color} metalness={metalness} roughness={0.3} segments={18} />
       </group>
     );
   },

@@ -5,6 +5,7 @@ import type {
   PlacementIssue,
   Rect,
   RoomDimensions,
+  WallPartition,
 } from '@/types';
 import { resolveCatalogItem } from '@/data/catalog';
 import {
@@ -41,6 +42,17 @@ export function instanceRect(
     w: catalog.size.w * instance.scale.x,
     d: catalog.size.d * instance.scale.z,
     rot: instance.rotation,
+  };
+}
+
+/** Footprint of an interior partition wall as an oriented rectangle. */
+export function partitionRect(partition: WallPartition): Rect {
+  return {
+    cx: partition.position.x,
+    cz: partition.position.z,
+    w: partition.thickness,
+    d: partition.length,
+    rot: partition.rotation,
   };
 }
 
@@ -129,6 +141,29 @@ export function evaluatePlacement(
           code: 'not-on-wall',
           message: `${a.catalog.name} is wall-mounted but is floating away from the wall.`,
         });
+      }
+    }
+  }
+
+  // --- Overlap with interior partition walls -----------------------------
+  const partitions = doc.room.partitions ?? [];
+  if (partitions.length > 0) {
+    for (let i = 0; i < entries.length; i++) {
+      const a = entries[i];
+      if (!a.catalog.collides) continue;
+      if (!wanted(a.instance.instanceId)) continue;
+      for (const p of partitions) {
+        const pRect = partitionRect(p);
+        if (rectsOverlap(a.rect, pRect)) {
+          issues.push({
+            instanceId: a.instance.instanceId,
+            severity: 'error',
+            code: 'overlap',
+            message: `Overlaps with ${p.name || 'interior wall'}`,
+            otherId: p.id,
+          });
+          break;
+        }
       }
     }
   }

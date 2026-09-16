@@ -1,16 +1,16 @@
 import { useMemo } from 'react';
 import clsx from 'clsx';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { PlacementIssue } from '@/types';
+import type { PlacementIssue, WallPartition } from '@/types';
 import { useEditor } from '@/store/editorStore';
 import { useUI } from '@/store/uiStore';
 import { resolveCatalogItem } from '@/data/catalog';
-import { QUICK_SWATCHES } from '@/data/finishes';
+import { QUICK_SWATCHES, WALL_COLORS, WALL_PATTERNS } from '@/data/finishes';
 import { evaluatePlacement, indexIssues, instanceSize } from '@/utils/placement';
 import { formatLength, fromDisplay, parseLength, toDisplay, unitLabel } from '@/utils/units';
 import { formatCurrency } from '@/utils/exporters';
 import { Icon } from './Icon';
-import { Button, EmptyState, IconButton, NumberField, Section, SwatchGrid, Tooltip } from './primitives';
+import { Button, EmptyState, IconButton, NumberField, Section, SwatchGrid, Switch, Tooltip } from './primitives';
 import { RoomPanel } from './RoomPanel';
 
 /**
@@ -58,6 +58,221 @@ function IssueList({ issues }: { issues: PlacementIssue[] }) {
   );
 }
 
+function PartitionInspector({ partition }: { partition: WallPartition }) {
+  const doc = useEditor((s) => s.doc);
+  const updatePartition = useEditor((s) => s.updatePartition);
+  const removePartition = useEditor((s) => s.removePartition);
+  const duplicatePartition = useEditor((s) => s.duplicatePartition);
+  const beginGesture = useEditor((s) => s.beginGesture);
+  const endGesture = useEditor((s) => s.endGesture);
+  const unit = doc.unit;
+  const dims = doc.room.dimensions;
+
+  const finish = partition.finish ?? doc.room.walls;
+
+  const commit = (patch: Partial<WallPartition>) => updatePartition(partition.id, patch);
+  const live = (patch: Partial<WallPartition>) => updatePartition(partition.id, patch, true);
+
+  return (
+    <>
+      <div className="flex items-start justify-between gap-2 border-b border-ink-200 px-4 py-3 dark:border-ink-800">
+        <div className="min-w-0">
+          <p className="truncate text-body font-medium text-ink-900 dark:text-sage-50">
+            {partition.name || 'Interior Partition Wall'}
+          </p>
+          <p className="text-caption text-ink-400">
+            {formatLength(partition.length, unit)} × {formatLength(partition.height, unit)}
+          </p>
+        </div>
+        <div className="flex gap-1">
+          <IconButton
+            size="sm"
+            icon="copy"
+            label="Duplicate wall"
+            onClick={() => duplicatePartition(partition.id)}
+          />
+          <IconButton
+            size="sm"
+            icon="trash"
+            label="Delete wall"
+            onClick={() => removePartition(partition.id)}
+          />
+        </div>
+      </div>
+
+      <Section title="Dimensions & Height" icon="cube">
+        <NumberField
+          label="Length"
+          suffix={unitLabel(unit)}
+          value={toDisplay(partition.length, unit)}
+          min={toDisplay(0.3, unit)}
+          max={toDisplay(Math.max(dims.width, dims.length), unit)}
+          step={0.05}
+          showSlider
+          format={(v) => v.toFixed(2)}
+          parse={(t) => {
+            const m = parseLength(t, unit);
+            return m === null ? null : toDisplay(m, unit);
+          }}
+          onChange={(v) => live({ length: fromDisplay(v, unit) })}
+          onCommit={(v) => {
+            beginGesture('Resize wall length');
+            commit({ length: fromDisplay(v, unit) });
+            endGesture();
+          }}
+        />
+
+        <NumberField
+          label="Height"
+          suffix={unitLabel(unit)}
+          value={toDisplay(partition.height, unit)}
+          min={toDisplay(0.3, unit)}
+          max={toDisplay(dims.height, unit)}
+          step={0.05}
+          showSlider
+          format={(v) => v.toFixed(2)}
+          parse={(t) => {
+            const m = parseLength(t, unit);
+            return m === null ? null : toDisplay(m, unit);
+          }}
+          onChange={(v) => live({ height: fromDisplay(v, unit) })}
+          onCommit={(v) => {
+            beginGesture('Resize wall height');
+            commit({ height: fromDisplay(v, unit) });
+            endGesture();
+          }}
+        />
+
+        {/* Quick Height presets */}
+        <div className="flex gap-1.5">
+          {[
+            { label: 'Ceiling', h: dims.height },
+            { label: 'Half Wall (1.1m)', h: 1.1 },
+            { label: 'Screen (0.85m)', h: 0.85 },
+          ].map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => commit({ height: preset.h })}
+              className="flex-1 rounded-control border border-ink-200 py-1 text-[11px] font-medium text-ink-600 transition-colors duration-150 hover:border-sage-400 hover:text-sage-700 dark:border-ink-700 dark:text-ink-300"
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+
+        <NumberField
+          label="Thickness"
+          suffix={unitLabel(unit)}
+          value={toDisplay(partition.thickness, unit)}
+          min={toDisplay(0.06, unit)}
+          max={toDisplay(0.4, unit)}
+          step={0.01}
+          format={(v) => v.toFixed(2)}
+          parse={(t) => {
+            const m = parseLength(t, unit);
+            return m === null ? null : toDisplay(m, unit);
+          }}
+          onChange={(v) => commit({ thickness: fromDisplay(v, unit) })}
+        />
+      </Section>
+
+      <Section title="Position & Rotation" icon="rotate">
+        <div className="grid grid-cols-2 gap-2">
+          <NumberField
+            label="X"
+            suffix={unitLabel(unit)}
+            value={toDisplay(partition.position.x, unit)}
+            min={toDisplay(-dims.width / 2, unit)}
+            max={toDisplay(dims.width / 2, unit)}
+            showSlider={false}
+            format={(v) => v.toFixed(2)}
+            parse={(t) => {
+              const m = parseLength(t, unit);
+              return m === null ? null : toDisplay(m, unit);
+            }}
+            onChange={(v) => commit({ position: { ...partition.position, x: fromDisplay(v, unit) } })}
+          />
+          <NumberField
+            label="Z"
+            suffix={unitLabel(unit)}
+            value={toDisplay(partition.position.z, unit)}
+            min={toDisplay(-dims.length / 2, unit)}
+            max={toDisplay(dims.length / 2, unit)}
+            showSlider={false}
+            format={(v) => v.toFixed(2)}
+            parse={(t) => {
+              const m = parseLength(t, unit);
+              return m === null ? null : toDisplay(m, unit);
+            }}
+            onChange={(v) => commit({ position: { ...partition.position, z: fromDisplay(v, unit) } })}
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            icon="redo"
+            className="flex-1"
+            onClick={() => commit({ rotation: (partition.rotation + 90) % 360 })}
+          >
+            Rotate 90°
+          </Button>
+          <span className="text-caption text-ink-400 tabular-nums">
+            {Math.round(partition.rotation)}°
+          </span>
+        </div>
+      </Section>
+
+      <Section title="Wall Finish" icon="sparkle">
+        <div className="flex flex-col gap-2">
+          <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
+            Pattern
+          </span>
+          <div className="grid grid-cols-3 gap-1.5">
+            {WALL_PATTERNS.map((pat) => {
+              const active = (finish.pattern ?? 'plain') === pat.id;
+              return (
+                <button
+                  key={pat.id}
+                  type="button"
+                  onClick={() => commit({ finish: { ...finish, pattern: pat.id } })}
+                  className={clsx(
+                    'rounded-control border px-2 py-1.5 text-left transition-colors duration-150',
+                    active
+                      ? 'border-sage-500 bg-sage-50 text-sage-900 dark:bg-sage-950/40 dark:text-sage-100'
+                      : 'border-ink-200 hover:bg-ink-50 dark:border-ink-700 dark:hover:bg-ink-800'
+                  )}
+                >
+                  <span className="block text-caption font-medium">{pat.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
+            Paint colour
+          </span>
+          <SwatchGrid
+            label="Wall paint"
+            colors={WALL_COLORS}
+            value={finish.color}
+            onChange={(c) => commit({ finish: { ...finish, color: c } })}
+          />
+        </div>
+      </Section>
+
+      <Section title="Actions" icon="settings">
+        <Button variant="danger" icon="trash" block onClick={() => removePartition(partition.id)}>
+          Delete wall
+        </Button>
+      </Section>
+    </>
+  );
+}
+
 function SelectionInspector() {
   const doc = useEditor((s) => s.doc);
   const selection = useEditor((s) => s.selection);
@@ -82,6 +297,14 @@ function SelectionInspector() {
         ? doc.furniture.find((f) => f.instanceId === selection[0])
         : undefined,
     [selection, doc.furniture]
+  );
+
+  const selectedPartition = useMemo(
+    () =>
+      selection.length === 1
+        ? (doc.room.partitions ?? []).find((p) => p.id === selection[0])
+        : undefined,
+    [selection, doc.room.partitions]
   );
 
   const issues = useMemo(() => {
@@ -206,6 +429,10 @@ function SelectionInspector() {
         </Section>
       </>
     );
+  }
+
+  if (selectedPartition) {
+    return <PartitionInspector partition={selectedPartition} />;
   }
 
   if (!instance) return <RoomPanel />;
@@ -465,6 +692,79 @@ function SelectionInspector() {
           />
         </div>
       </Section>
+
+      {/* Dynamic light controls for light fixtures */}
+      {catalog.isLight && (
+        <Section title="Interactive Lighting" icon="sparkle" defaultOpen={true}>
+          <div className="flex items-center justify-between">
+            <span className="text-caption font-medium text-ink-800 dark:text-sage-50">
+              Light Source
+            </span>
+            <Switch
+              label="Turn light on or off"
+              checked={instance.lightEnabled ?? true}
+              onChange={(enabled) => commitPatch({ lightEnabled: enabled })}
+            />
+          </div>
+
+          <NumberField
+            label="Brightness"
+            suffix="×"
+            value={instance.lightIntensity ?? catalog.lightIntensity ?? 1.5}
+            min={0.2}
+            max={3.5}
+            step={0.1}
+            showSlider
+            disabled={instance.lightEnabled === false}
+            format={(v) => `${(v * 100).toFixed(0)}%`}
+            onChange={(v) => livePatch({ lightIntensity: v })}
+            onCommit={(v) => {
+              beginGesture('Adjust light intensity');
+              commitPatch({ lightIntensity: v });
+              endGesture();
+            }}
+          />
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
+              Color Temperature
+            </span>
+            <div className="grid grid-cols-2 gap-1.5">
+              {[
+                { name: 'Warm (2700K)', color: '#ffddaa' },
+                { name: 'Soft (3000K)', color: '#ffe8cc' },
+                { name: 'Neutral (4000K)', color: '#ffffff' },
+                { name: 'Daylight (6000K)', color: '#d8e8ff' },
+                { name: 'Cozy Amber', color: '#ffaa55' },
+              ].map((temp) => {
+                const active =
+                  (instance.lightColor ?? catalog.lightColor ?? '#ffe5b4').toLowerCase() ===
+                  temp.color.toLowerCase();
+                return (
+                  <button
+                    key={temp.name}
+                    type="button"
+                    disabled={instance.lightEnabled === false}
+                    onClick={() => commitPatch({ lightColor: temp.color })}
+                    className={clsx(
+                      'flex items-center gap-1.5 rounded-control border px-2 py-1 text-left text-[11px] transition-colors',
+                      active
+                        ? 'border-sage-500 bg-sage-50 font-semibold text-sage-900 dark:bg-sage-950/40 dark:text-sage-100'
+                        : 'border-ink-200 text-ink-600 hover:bg-ink-50 disabled:opacity-40 dark:border-ink-700 dark:text-ink-300'
+                    )}
+                  >
+                    <span
+                      className="h-3 w-3 shrink-0 rounded-full border border-black/20"
+                      style={{ backgroundColor: temp.color }}
+                    />
+                    <span className="truncate">{temp.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </Section>
+      )}
 
       <Section title="Notes" icon="info" defaultOpen={false}>
         <textarea

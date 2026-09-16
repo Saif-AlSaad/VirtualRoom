@@ -12,6 +12,7 @@ import type {
   Vec2,
   WallPattern,
   WallSide,
+  WallPartition,
   AlignMode,
   DistributeAxis,
 } from '@/types';
@@ -66,6 +67,11 @@ function cloneDoc(doc: DocumentState): DocumentState {
       walls: { ...doc.room.walls },
       floor: { ...doc.room.floor },
       openings: doc.room.openings.map((o) => ({ ...o })),
+      partitions: (doc.room.partitions ?? []).map((p) => ({
+        ...p,
+        position: { ...p.position },
+        finish: p.finish ? { ...p.finish } : undefined,
+      })),
     },
     furniture: doc.furniture.map((f) => ({
       ...f,
@@ -132,6 +138,11 @@ export interface EditorState {
   updateOpening: (id: string, patch: Partial<Opening>, live?: boolean) => void;
   removeOpening: (id: string) => void;
 
+  addPartition: (preset?: 'full' | 'half' | 'screen') => string;
+  updatePartition: (id: string, patch: Partial<WallPartition>, live?: boolean) => void;
+  removePartition: (id: string) => void;
+  duplicatePartition: (id: string) => string | null;
+
   addFurniture: (
     catalogId: string,
     at?: Vec2,
@@ -142,6 +153,10 @@ export interface EditorState {
     id: string,
     patch: Partial<FurnitureInstance>,
     live?: boolean
+  ) => void;
+  updateFurnitureLight: (
+    id: string,
+    patch: { lightEnabled?: boolean; lightIntensity?: number; lightColor?: string }
   ) => void;
   moveSelection: (delta: Vec2) => void;
   rotateSelection: (deltaDegrees: number) => void;
@@ -173,6 +188,13 @@ function reflowToRoom(doc: DocumentState): void {
     o.height = Math.min(o.height, dims.height);
     o.sillHeight = Math.min(o.sillHeight, Math.max(0, dims.height - o.height));
     o.offset = clampOpeningOffset(o.offset, o.width, o.wall, dims);
+  }
+  for (const p of doc.room.partitions ?? []) {
+    p.height = Math.min(p.height, dims.height);
+    const halfW = dims.width / 2;
+    const halfL = dims.length / 2;
+    p.position.x = Math.max(-halfW, Math.min(halfW, p.position.x));
+    p.position.z = Math.max(-halfL, Math.min(halfL, p.position.z));
   }
   for (const f of doc.furniture) {
     const next = clampRectToRoom(instanceRect(f), dims.width, dims.length);
@@ -311,8 +333,10 @@ export const useEditor = create<EditorState>((set, get) => ({
       revision: s.revision + 1,
       saveStatus: 'saving',
       // Selection may reference objects that no longer exist after the undo.
-      selection: s.selection.filter((id) =>
-        entry.doc.furniture.some((f) => f.instanceId === id)
+      selection: s.selection.filter(
+        (id) =>
+          entry.doc.furniture.some((f) => f.instanceId === id) ||
+          (entry.doc.room.partitions ?? []).some((p) => p.id === id)
       ),
     }));
     return entry.label;
@@ -330,8 +354,10 @@ export const useEditor = create<EditorState>((set, get) => ({
       ),
       revision: s.revision + 1,
       saveStatus: 'saving',
-      selection: s.selection.filter((id) =>
-        entry.doc.furniture.some((f) => f.instanceId === id)
+      selection: s.selection.filter(
+        (id) =>
+          entry.doc.furniture.some((f) => f.instanceId === id) ||
+          (entry.doc.room.partitions ?? []).some((p) => p.id === id)
       ),
     }));
     return entry.label;
@@ -467,6 +493,93 @@ export const useEditor = create<EditorState>((set, get) => ({
     get().commit('Delete opening', (d) => {
       d.room.openings = d.room.openings.filter((o) => o.id !== id);
     }),
+
+  addPartition: (preset = 'full') => {
+    const id = createId('ptn');
+    get().commit('Add interior wall', (d) => {
+      d.room.partitions = d.room.partitions ?? [];
+      const dims = d.room.dimensions;
+      const height =
+        preset === 'half'
+          ? 1.1
+          : preset === 'screen'
+            ? 0.85
+            : dims.height;
+      const length = Math.min(2.4, Math.max(1.2, Math.min(dims.width, dims.length) * 0.5));
+      const count = d.room.partitions.length;
+      const stagger = ((count % 5) - 2) * 0.35;
+      d.room.partitions.push({
+        id,
+        name:
+          preset === 'half'
+            ? 'Half-wall divider'
+            : preset === 'screen'
+              ? 'Low partition'
+              : 'Interior wall',
+        position: { x: stagger, z: stagger },
+        rotation: count % 2 === 1 ? 90 : 0,
+        length,
+        thickness: 0.12,
+        height,
+      });
+    });
+    set({ selection: [id] });
+    return id;
+  },
+
+  updatePartition: (id, patch, live = false) => {
+    const apply = (d: DocumentState) => {
+      d.room.partitions = d.room.partitions ?? [];
+      const p = d.room.partitions.find((x) => x.id === id);
+      if (!p) return;
+      if (patch.position) {
+        p.position.x = patch.position.x;
+        p.position.z = patch.position.z;
+      }
+      if (patch.rotation !== undefined) p.rotation = normalizeAngle(patch.rotation);
+      if (patch.length !== undefined) p.length = Math.max(0.2, patch.length);
+      if (patch.thickness !== undefined) p.thickness = Math.max(0.04, patch.thickness);
+      if (patch.height !== undefined) p.height = Math.max(0.2, patch.height);
+      if (patch.finish !== undefined) p.finish = patch.finish;
+      if (patch.name !== undefined) p.name = patch.name;
+    };
+    if (live) get().mutateLive(apply);
+    else get().commit('Update interior wall', apply);
+  },
+
+  removePartition: (id) =>
+    get().commit('Delete interior wall', (d) => {
+      d.room.partitions = (d.room.partitions ?? []).filter((p) => p.id !== id);
+      set((s) => ({ selection: s.selection.filter((x) => x !== id) }));
+    }),
+
+  duplicatePartition: (id) => {
+    const p = (get().doc.room.partitions ?? []).find((x) => x.id === id);
+    if (!p) return null;
+    const newId = createId('ptn');
+    get().commit('Duplicate interior wall', (d) => {
+      d.room.partitions = d.room.partitions ?? [];
+      d.room.partitions.push({
+        ...p,
+        id: newId,
+        name: p.name ? `${p.name} (Copy)` : 'Interior wall copy',
+        position: { x: p.position.x + 0.3, z: p.position.z + 0.3 },
+        finish: p.finish ? { ...p.finish } : undefined,
+      });
+    });
+    set({ selection: [newId] });
+    return newId;
+  },
+
+  updateFurnitureLight: (id, patch) => {
+    get().commit('Adjust lamp lighting', (d) => {
+      const f = d.furniture.find((x) => x.instanceId === id);
+      if (!f) return;
+      if (patch.lightEnabled !== undefined) f.lightEnabled = patch.lightEnabled;
+      if (patch.lightIntensity !== undefined) f.lightIntensity = patch.lightIntensity;
+      if (patch.lightColor !== undefined) f.lightColor = patch.lightColor;
+    });
+  },
 
   addFurniture: (catalogId, at, rotation, customModelUrl) => {
     const catalog = resolveCatalogItem(catalogId);

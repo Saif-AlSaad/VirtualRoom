@@ -7,6 +7,8 @@ import {
   type Room,
   type Unit,
   type WallSide,
+  type WallFinish,
+  type WallPartition,
 } from '@/types';
 import { createId, createProjectId } from './id';
 import { getCatalogItem } from '@/data/catalog';
@@ -75,6 +77,7 @@ export function defaultRoom(): Room {
     walls: { color: '#f5f4f0' },
     floor: { ...DEFAULT_FLOOR },
     openings: [],
+    partitions: [],
   };
 }
 
@@ -142,6 +145,52 @@ function parseOpening(
   };
 }
 
+function parsePartition(
+  raw: unknown,
+  room: Room,
+  warnings: string[]
+): WallPartition | null {
+  if (!isObject(raw)) {
+    warnings.push('Dropped a partition that was not an object.');
+    return null;
+  }
+  const pos = isObject(raw.position) ? raw.position : {};
+  const maxSpan = Math.max(room.dimensions.width, room.dimensions.length) * 2;
+  const length = clamp(num(raw.length, 2.0), 0.2, maxSpan);
+  const thickness = clamp(num(raw.thickness, 0.12), 0.04, 0.8);
+  const height = clamp(num(raw.height, room.dimensions.height), 0.3, room.dimensions.height * 1.5);
+
+  let finish: WallFinish | undefined = undefined;
+  if (isObject(raw.finish)) {
+    finish = {
+      color: color(raw.finish.color, room.walls.color),
+      pattern:
+        raw.finish.pattern === 'plain' ||
+        raw.finish.pattern === 'brick' ||
+        raw.finish.pattern === 'panels' ||
+        raw.finish.pattern === 'subway' ||
+        raw.finish.pattern === 'stripes' ||
+        raw.finish.pattern === 'concrete'
+          ? raw.finish.pattern
+          : 'plain',
+    };
+  }
+
+  return {
+    id: typeof raw.id === 'string' && raw.id.length <= 64 ? raw.id : createId('ptn'),
+    name: typeof raw.name === 'string' ? text(raw.name, 'Partition wall', 60) : undefined,
+    position: {
+      x: clamp(num(pos.x, 0), -room.dimensions.width / 2, room.dimensions.width / 2),
+      z: clamp(num(pos.z, 0), -room.dimensions.length / 2, room.dimensions.length / 2),
+    },
+    rotation: normalizeAngle(num(raw.rotation, 0)),
+    length,
+    thickness,
+    height,
+    finish,
+  };
+}
+
 function parseFurniture(
   raw: unknown,
   warnings: string[]
@@ -204,6 +253,15 @@ function parseFurniture(
     elevation:
       typeof raw.elevation === 'number' && Number.isFinite(raw.elevation)
         ? clamp(raw.elevation, 0, 20)
+        : undefined,
+    lightEnabled: typeof raw.lightEnabled === 'boolean' ? raw.lightEnabled : undefined,
+    lightIntensity:
+      typeof raw.lightIntensity === 'number' && Number.isFinite(raw.lightIntensity)
+        ? clamp(raw.lightIntensity, 0.1, 5)
+        : undefined,
+    lightColor:
+      typeof raw.lightColor === 'string' && HEX.test(raw.lightColor)
+        ? raw.lightColor.toLowerCase()
         : undefined,
   };
 }
@@ -290,6 +348,7 @@ export function parseProject(raw: unknown): ParseResult {
           : 'planks',
     },
     openings: [],
+    partitions: [],
   };
 
   const rawOpenings = Array.isArray(rawRoom.openings) ? rawRoom.openings : [];
@@ -299,6 +358,15 @@ export function parseProject(raw: unknown): ParseResult {
   for (const o of rawOpenings.slice(0, 40)) {
     const parsed = parseOpening(o, room, warnings);
     if (parsed) room.openings.push(parsed);
+  }
+
+  const rawPartitions = Array.isArray(rawRoom.partitions) ? rawRoom.partitions : [];
+  if (rawPartitions.length > 50) {
+    warnings.push('Project had an excessive number of partitions; extras were dropped.');
+  }
+  for (const p of rawPartitions.slice(0, 50)) {
+    const parsed = parsePartition(p, room, warnings);
+    if (parsed) room.partitions!.push(parsed);
   }
 
   const rawFurniture = Array.isArray(raw.furniture) ? raw.furniture : [];

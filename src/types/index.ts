@@ -113,7 +113,10 @@ export type ModelKind =
   | 'parasol'
   | 'tvScreen'
   | 'mirror'
-  | 'wallArt';
+  | 'wallArt'
+  | 'pendantLamp'
+  | 'deskLamp'
+  | 'wallSconce';
 
 /** Immutable catalog definition. Never mutated by the editor. */
 export interface CatalogItem {
@@ -172,6 +175,12 @@ export interface FurnitureInstance {
   customModelUrl?: string | null;
   /** Vertical elevation above floor in metres. Overrides catalog default when set. */
   elevation?: number;
+  /** Whether the light emitter is switched on. Defaults to true for light fixtures. */
+  lightEnabled?: boolean;
+  /** Custom light intensity multiplier (e.g. 0.2 to 3.0). */
+  lightIntensity?: number;
+  /** Custom hex light color (e.g. #ffddaa for 2700K warm, #d8e8ff for 6000K). */
+  lightColor?: string;
 }
 
 export type AlignMode = 'left' | 'center-x' | 'right' | 'back' | 'center-z' | 'front';
@@ -197,11 +206,29 @@ export interface RoomDimensions {
   wallThickness: number;
 }
 
+export interface WallPartition {
+  id: string;
+  name?: string;
+  /** Centre of the partition footprint on the floor plane. */
+  position: Vec2;
+  /** Rotation about +Y in DEGREES, normalised to [0, 360). */
+  rotation: number;
+  /** Length in metres along its primary axis. */
+  length: number;
+  /** Wall thickness in metres (default ~0.12). */
+  thickness: number;
+  /** Wall height in metres (e.g. full room height or half-wall ~1.1m). */
+  height: number;
+  /** Optional custom wall finish; defaults to room wall finish if omitted. */
+  finish?: WallFinish;
+}
+
 export interface Room {
   dimensions: RoomDimensions;
   walls: WallFinish;
   floor: FloorFinish;
   openings: Opening[];
+  partitions?: WallPartition[];
 }
 
 /** The full persisted document for one design. */

@@ -245,3 +245,55 @@ describe('identity', () => {
     if (result.ok) expect(result.project.id).toMatch(/^prj_[a-z0-9]+$/);
   });
 });
+
+describe('partitions and lighting', () => {
+  it('parses valid partitions and clamps out-of-bounds positions', () => {
+    const result = parseProject({
+      ...baseProject(),
+      room: {
+        ...baseProject().room,
+        partitions: [
+          {
+            name: 'Office divider',
+            position: { x: 50, z: -50 },
+            length: 3.0,
+            thickness: 0.15,
+            height: 2.4,
+            rotation: 45,
+            finish: { color: '#f5f4f0', pattern: 'panels' },
+          },
+        ],
+      },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const p = result.project.room.partitions?.[0];
+    expect(p).toBeDefined();
+    expect(p?.name).toBe('Office divider');
+    expect(p?.length).toBe(3.0);
+    expect(p?.finish?.pattern).toBe('panels');
+    expect(p?.position.x).toBeLessThanOrEqual(2.1);
+    expect(p?.position.z).toBeGreaterThanOrEqual(-2.5);
+  });
+
+  it('parses lighting properties on furniture', () => {
+    const result = parseProject({
+      ...baseProject(),
+      furniture: [
+        {
+          catalogId: 'floor-lamp',
+          position: { x: 1, z: 1 },
+          lightEnabled: false,
+          lightIntensity: 2.2,
+          lightColor: '#ffeaad',
+        },
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const f = result.project.furniture[0];
+    expect(f.lightEnabled).toBe(false);
+    expect(f.lightIntensity).toBe(2.2);
+    expect(f.lightColor).toBe('#ffeaad');
+  });
+});

@@ -61,11 +61,13 @@ export function DragController() {
         const target = drag.targets[0];
         if (!target) return;
         const instance = doc.furniture.find((f) => f.instanceId === target.id);
-        if (!instance) return;
+        const partition = (doc.room.partitions ?? []).find((p) => p.id === target.id);
+        if (!instance && !partition) return;
 
+        const center = instance ? instance.position : partition!.position;
         const angle = Math.atan2(
-          point.x - instance.position.x,
-          point.z - instance.position.z
+          point.x - center.x,
+          point.z - center.z
         );
         const deltaDeg = ((angle - drag.startAngle) * 180) / Math.PI;
         let next = normalizeAngle(drag.startRotation + deltaDeg);
@@ -77,10 +79,15 @@ export function DragController() {
         }
 
         editor.mutateLive((d) => {
-          const f = d.furniture.find((x) => x.instanceId === target.id);
-          if (!f || f.locked) return;
-          f.rotation = next;
-          f.position = clampRectToRoom(instanceRect(f), dims.width, dims.length);
+          if (instance) {
+            const f = d.furniture.find((x) => x.instanceId === target.id);
+            if (!f || f.locked) return;
+            f.rotation = next;
+            f.position = clampRectToRoom(instanceRect(f), dims.width, dims.length);
+          } else if (partition) {
+            const p = (d.room.partitions ?? []).find((x) => x.id === target.id);
+            if (p) p.rotation = next;
+          }
         });
         return;
       }
@@ -88,6 +95,28 @@ export function DragController() {
       // ── Move ──────────────────────────────────────────────────────────
       const primary = drag.targets[0];
       if (!primary) return;
+
+      const primaryPartition = (doc.room.partitions ?? []).find((p) => p.id === primary.id);
+      if (primaryPartition) {
+        const rawX = point.x + primary.offset.x;
+        const rawZ = point.z + primary.offset.z;
+        const halfW = dims.width / 2;
+        const halfL = dims.length / 2;
+        const snapX = settings.grid ? Math.round(rawX / 0.1) * 0.1 : rawX;
+        const snapZ = settings.grid ? Math.round(rawZ / 0.1) * 0.1 : rawZ;
+        const nextX = THREE.MathUtils.clamp(snapX, -halfW, halfW);
+        const nextZ = THREE.MathUtils.clamp(snapZ, -halfL, halfL);
+
+        editor.mutateLive((d) => {
+          const p = (d.room.partitions ?? []).find((x) => x.id === primary.id);
+          if (p) {
+            p.position.x = nextX;
+            p.position.z = nextZ;
+          }
+        });
+        return;
+      }
+
       const primaryInstance = doc.furniture.find((f) => f.instanceId === primary.id);
       if (!primaryInstance) return;
 

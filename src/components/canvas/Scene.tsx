@@ -8,6 +8,7 @@ import { useDrag } from '@/store/dragStore';
 import { resolveCatalogItem } from '@/data/catalog';
 import { evaluatePlacement, indexIssues, worstSeverity } from '@/utils/placement';
 import { Room } from './Room';
+import { Partitions } from './Partitions';
 import { Openings } from './Openings';
 import { FurnitureItem } from './FurnitureItem';
 import { Lighting } from './Lighting';
@@ -79,6 +80,7 @@ function SceneContents() {
       </mesh>
 
       <Room room={doc.room} />
+      <Partitions />
       <Openings openings={doc.room.openings} dims={dims} />
 
       {doc.furniture.map((instance) => {

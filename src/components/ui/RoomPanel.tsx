@@ -166,6 +166,10 @@ export function RoomPanel() {
   const setFloor = useEditor((s) => s.setFloor);
   const setUnit = useEditor((s) => s.setUnit);
   const addOpening = useEditor((s) => s.addOpening);
+  const addPartition = useEditor((s) => s.addPartition);
+  const removePartition = useEditor((s) => s.removePartition);
+  const select = useEditor((s) => s.select);
+  const selection = useEditor((s) => s.selection);
 
   const currency = useUI((s) => s.currency);
   const showDimensions = useUI((s) => s.showDimensions);
@@ -258,6 +262,67 @@ export function RoomPanel() {
             {doc.room.openings.map((o) => (
               <OpeningRow key={o.id} id={o.id} />
             ))}
+          </div>
+        )}
+      </Section>
+
+      <Section title="Interior Partition Walls" icon="layers">
+        <div className="flex flex-col gap-2">
+          <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
+            Add divider or wall
+          </span>
+          <div className="grid grid-cols-3 gap-1.5">
+            <Button size="sm" icon="plus" onClick={() => addPartition('full')}>
+              Full Wall
+            </Button>
+            <Button size="sm" icon="plus" onClick={() => addPartition('half')}>
+              Half Wall
+            </Button>
+            <Button size="sm" icon="plus" onClick={() => addPartition('screen')}>
+              Divider
+            </Button>
+          </div>
+        </div>
+
+        {(doc.room.partitions ?? []).length === 0 ? (
+          <p className="text-caption text-ink-400">
+            No interior walls yet. Add one to divide open-plan rooms, define alcoves, or create half-wall kitchen counters.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {(doc.room.partitions ?? []).map((p) => {
+              const active = selection.includes(p.id);
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => select(p.id)}
+                  className={clsx(
+                    'flex cursor-pointer items-center justify-between gap-2 rounded-control border px-3 py-2 text-left transition-colors',
+                    active
+                      ? 'border-sage-500 bg-sage-50/60 text-sage-900 dark:bg-sage-950/30 dark:text-sage-100'
+                      : 'border-ink-200 hover:border-ink-300 hover:bg-ink-50 dark:border-ink-700 dark:hover:bg-ink-800'
+                  )}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-caption font-medium">
+                      {p.name || 'Interior Wall'}
+                    </p>
+                    <p className="text-[11px] text-ink-400">
+                      {formatLength(p.length, unit)} · {formatLength(p.height, unit)} tall
+                    </p>
+                  </div>
+                  <IconButton
+                    size="sm"
+                    icon="trash"
+                    label="Delete wall"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removePartition(p.id);
+                    }}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
       </Section>

@@ -46,6 +46,43 @@ describe('evaluatePlacement', () => {
     expect(issues.filter((i) => i.severity === 'error')).toHaveLength(0);
   });
 
+  it('flags an error when furniture intersects an interior partition wall', () => {
+    const d = doc([place('sofa-3', 0, 0)]);
+    d.room.partitions = [
+      {
+        id: 'ptn-test',
+        name: 'Divider',
+        position: { x: 0, z: 0 },
+        rotation: 0,
+        length: 2.0,
+        thickness: 0.15,
+        height: 2.6,
+      },
+    ];
+    const issues = evaluatePlacement(d);
+    const overlap = issues.find((i) => i.code === 'overlap' && i.message.includes('Divider'));
+    expect(overlap).toBeDefined();
+    expect(overlap?.severity).toBe('error');
+  });
+
+  it('allows non-colliding items like rugs to share footprint with partition walls', () => {
+    const d = doc([place('rug-large', 0, 0)]);
+    d.room.partitions = [
+      {
+        id: 'ptn-test',
+        name: 'Divider',
+        position: { x: 0, z: 0 },
+        rotation: 0,
+        length: 2.0,
+        thickness: 0.15,
+        height: 2.6,
+      },
+    ];
+    const issues = evaluatePlacement(d);
+    const overlap = issues.find((i) => i.code === 'overlap');
+    expect(overlap).toBeUndefined();
+  });
+
   it('names the other object in an overlap message', () => {
     const issues = evaluatePlacement(doc([place('sofa-3', 0, 0), place('armchair', 0.2, 0)]));
     const overlap = issues.find((i) => i.code === 'overlap');
