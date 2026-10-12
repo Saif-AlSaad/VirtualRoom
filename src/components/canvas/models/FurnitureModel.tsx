@@ -1,7 +1,8 @@
 import { memo, useEffect, useState } from 'react';
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { CatalogItem, FurnitureInstance } from '@/types';
+import { getCustomModelUrl } from '@/utils/customModelStorage';
 import { MODEL_BUILDERS, PlaceholderModel } from './builders';
 
 /**
@@ -22,43 +23,71 @@ interface Props {
   instance: FurnitureInstance;
 }
 
-function CustomGLTFModel({ url, w, d, h }: { url: string; w: number; d: number; h: number }) {
+function CustomGLTFModel({
+  url,
+  catalogId,
+  w,
+  d,
+  h,
+}: {
+  url: string;
+  catalogId: string;
+  w: number;
+  d: number;
+  h: number;
+}) {
   const [modelGroup, setModelGroup] = useState<THREE.Group | null>(null);
 
   useEffect(() => {
     let active = true;
     const loader = new GLTFLoader();
-    loader.load(
-      url,
-      (gltf) => {
-        if (!active) return;
-        const root = gltf.scene.clone(true);
-        const box = new THREE.Box3().setFromObject(root);
-        const size = box.getSize(new THREE.Vector3());
-        const center = box.getCenter(new THREE.Vector3());
 
-        // Center on XZ and ground at Y=0
-        root.position.x -= center.x;
-        root.position.y -= box.min.y;
-        root.position.z -= center.z;
+    const parseAndSet = (gltf: GLTF) => {
+      if (!active) return;
+      const root = gltf.scene.clone(true);
+      const box = new THREE.Box3().setFromObject(root);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
 
-        const sx = size.x > 0 ? w / size.x : 1;
-        const sy = size.y > 0 ? h / size.y : 1;
-        const sz = size.z > 0 ? d / size.z : 1;
-        root.scale.set(sx, sy, sz);
+      // Center on XZ and ground at Y=0
+      root.position.x -= center.x;
+      root.position.y -= box.min.y;
+      root.position.z -= center.z;
 
-        setModelGroup(root);
-      },
-      undefined,
-      () => {
-        if (active) setModelGroup(null);
-      }
-    );
+      const sx = size.x > 0 ? w / size.x : 1;
+      const sy = size.y > 0 ? h / size.y : 1;
+      const sz = size.z > 0 ? d / size.z : 1;
+      root.scale.set(sx, sy, sz);
+
+      setModelGroup(root);
+    };
+
+    const loadUrl = (targetUrl: string) => {
+      loader.load(
+        targetUrl,
+        parseAndSet,
+        undefined,
+        async () => {
+          // If the URL failed (e.g. expired blob URL after page reload), recover via IndexedDB
+          if (!active) return;
+          const freshUrl = await getCustomModelUrl(catalogId);
+          if (freshUrl && freshUrl !== targetUrl && active) {
+            loader.load(freshUrl, parseAndSet, undefined, () => {
+              if (active) setModelGroup(null);
+            });
+          } else if (active) {
+            setModelGroup(null);
+          }
+        }
+      );
+    };
+
+    loadUrl(url);
 
     return () => {
       active = false;
     };
-  }, [url, w, d, h]);
+  }, [url, catalogId, w, d, h]);
 
   if (!modelGroup) {
     return <PlaceholderModel w={w} d={d} h={h} />;
@@ -72,6 +101,7 @@ function FurnitureModelImpl({ catalog, instance }: Props) {
     return (
       <CustomGLTFModel
         url={instance.customModelUrl}
+        catalogId={instance.catalogId}
         w={catalog.size.w}
         d={catalog.size.d}
         h={catalog.size.h}

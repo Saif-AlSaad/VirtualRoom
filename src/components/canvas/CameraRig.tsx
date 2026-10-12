@@ -6,6 +6,10 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { CameraPreset, RoomDimensions } from '@/types';
 import { useUI } from '@/store/uiStore';
 import { useDrag } from '@/store/dragStore';
+import { useEditor } from '@/store/editorStore';
+import { resolveCatalogItem } from '@/data/catalog';
+import { instanceRect, partitionRect } from '@/utils/placement';
+import { resolveCircleRectCollision } from '@/utils/collision';
 
 /**
  * Camera behaviour: orbit, preset fly-to, top-down 2D, and walkthrough.
@@ -219,18 +223,41 @@ export function CameraRig({ dims }: Props) {
         const len = Math.hypot(forward, strafe);
         const fx = (forward / Math.max(len, 1)) * speed * dt;
         const sx = (strafe / Math.max(len, 1)) * speed * dt;
-        state.position.x += Math.sin(state.yaw) * fx + Math.cos(state.yaw) * sx;
-        state.position.z += Math.cos(state.yaw) * fx - Math.sin(state.yaw) * sx;
+        let nextPos = {
+          x: state.position.x + Math.sin(state.yaw) * fx + Math.cos(state.yaw) * sx,
+          z: state.position.z + Math.cos(state.yaw) * fx - Math.sin(state.yaw) * sx,
+        };
 
-        // Keep the walker inside the room, 250 mm off the walls.
+        // Solid obstacle collision (interior partitions & collidable furniture)
+        const doc = useEditor.getState().doc;
+        const walkerRadius = 0.25;
+
+        // 1. Partitions
+        for (const p of doc.room.partitions ?? []) {
+          nextPos = resolveCircleRectCollision(nextPos, walkerRadius, partitionRect(p));
+        }
+
+        // 2. Collidable furniture (exclude floor rugs, low flat items)
+        for (const f of doc.furniture) {
+          if (!f.visible) continue;
+          const cat = resolveCatalogItem(f.catalogId);
+          if (!cat.collides) continue;
+          const elev = f.elevation ?? cat.elevation;
+          const h = cat.size.h * f.scale.y;
+          // Walker body height is ~0.2m to 1.8m
+          if (elev > 1.8 || elev + h < 0.2) continue;
+          nextPos = resolveCircleRectCollision(nextPos, walkerRadius, instanceRect(f, cat));
+        }
+
+        // Keep the walker inside the room, 250 mm off the outer walls.
         const margin = 0.25;
         state.position.x = THREE.MathUtils.clamp(
-          state.position.x,
+          nextPos.x,
           -dims.width / 2 + margin,
           dims.width / 2 - margin
         );
         state.position.z = THREE.MathUtils.clamp(
-          state.position.z,
+          nextPos.z,
           -dims.length / 2 + margin,
           dims.length / 2 - margin
         );

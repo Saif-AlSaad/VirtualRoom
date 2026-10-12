@@ -3,6 +3,7 @@ import type { Clearance, Rect } from '@/types';
 import {
   clampRectToRoom,
   clearanceRect,
+  closestPointOnRect,
   normalizeAngle,
   outOfBoundsAmount,
   overlapDepth,
@@ -10,6 +11,7 @@ import {
   rectCorners,
   rectInsideRoom,
   rectsOverlap,
+  resolveCircleRectCollision,
   rotateLocal,
   unrotateLocal,
 } from './collision';
@@ -176,3 +178,57 @@ describe('clearanceRect', () => {
     expect(zone.cz).toBeCloseTo(0);
   });
 });
+
+describe('closestPointOnRect', () => {
+  it('returns point itself when point is inside rect', () => {
+    const r = rect(0, 0, 2, 2);
+    const cp = closestPointOnRect({ x: 0.5, z: -0.2 }, r);
+    expect(cp.x).toBeCloseTo(0.5);
+    expect(cp.z).toBeCloseTo(-0.2);
+  });
+
+  it('clamps point to nearest edge for unrotated rect', () => {
+    const r = rect(0, 0, 2, 2);
+    const cp = closestPointOnRect({ x: 3, z: 0 }, r);
+    expect(cp.x).toBeCloseTo(1);
+    expect(cp.z).toBeCloseTo(0);
+  });
+
+  it('works with rotated rectangles', () => {
+    // Rect rotated 90 deg: local x is world -z, local z is world x
+    const r = rect(0, 0, 2, 4, 90); // w=2 (local x), d=4 (local z)
+    // In world coordinates, rect spans x ∈ [-2, 2], z ∈ [-1, 1]
+    const cp = closestPointOnRect({ x: 5, z: 0 }, r);
+    expect(cp.x).toBeCloseTo(2);
+    expect(cp.z).toBeCloseTo(0);
+  });
+});
+
+describe('resolveCircleRectCollision', () => {
+  it('does nothing when circle does not intersect rectangle', () => {
+    const r = rect(0, 0, 2, 2);
+    const pos = { x: 3, z: 3 };
+    const res = resolveCircleRectCollision(pos, 0.5, r);
+    expect(res.x).toBeCloseTo(3);
+    expect(res.z).toBeCloseTo(3);
+  });
+
+  it('pushes circle out to circle radius from rectangle face', () => {
+    const r = rect(0, 0, 2, 2);
+    // Rect right edge is at x = 1. Circle at x = 1.2 with radius 0.5 overlaps by 0.3.
+    const pos = { x: 1.2, z: 0 };
+    const res = resolveCircleRectCollision(pos, 0.5, r);
+    // Should be pushed to x = 1.0 + 0.5 = 1.5
+    expect(res.x).toBeCloseTo(1.5);
+    expect(res.z).toBeCloseTo(0);
+  });
+
+  it('pushes circle out when center is inside rectangle', () => {
+    const r = rect(0, 0, 2, 2);
+    const pos = { x: 0.8, z: 0 };
+    const res = resolveCircleRectCollision(pos, 0.5, r);
+    expect(res.x).toBeCloseTo(1.5);
+    expect(res.z).toBeCloseTo(0);
+  });
+});
+

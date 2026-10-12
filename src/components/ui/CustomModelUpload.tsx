@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { CatalogItem } from '@/types';
-import { registerCustomCatalogItem } from '@/data/catalog';
+import { saveCustomModel } from '@/utils/customModelStorage';
 import { useEditor } from '@/store/editorStore';
 import { useUI } from '@/store/uiStore';
 import { Icon } from './Icon';
@@ -33,7 +33,7 @@ export function CustomModelUpload() {
       loader.parse(
         buffer,
         '',
-        (gltf) => {
+        async (gltf) => {
           const box = new THREE.Box3().setFromObject(gltf.scene);
           const rawSize = box.getSize(new THREE.Vector3());
 
@@ -44,7 +44,6 @@ export function CustomModelUpload() {
 
           const customId = `custom-${Date.now()}`;
           const cleanName = file.name.replace(/\.(glb|gltf)$/i, '').replace(/[-_]+/g, ' ');
-          const blobUrl = URL.createObjectURL(file);
 
           const customItem: CatalogItem = {
             id: customId,
@@ -71,8 +70,8 @@ export function CustomModelUpload() {
             availability: 'custom',
           };
 
-          registerCustomCatalogItem(customItem);
-          const placedId = addFurniture(customId, undefined, undefined, blobUrl);
+          const objectUrl = await saveCustomModel(customItem, buffer);
+          const placedId = addFurniture(customId, undefined, undefined, objectUrl);
 
           setLoading(false);
           if (placedId) {

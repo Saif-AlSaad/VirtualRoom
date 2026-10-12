@@ -11,6 +11,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { consumeShareFromUrl } from '@/utils/shareLink';
 import { getLastOpenProject } from '@/utils/storage';
 import { storageAvailable } from '@/utils/storage';
+import { initCustomCatalog } from '@/utils/customModelStorage';
 
 /**
  * App root: theme, routing between dashboard and editor, and startup.
@@ -36,6 +37,9 @@ export function App() {
   useEffect(() => {
     if (booted) return;
     setBooted(true);
+
+    // Hydrate persisted custom 3D models and catalog items into memory
+    initCustomCatalog().catch(() => {});
 
     if (!storageAvailable()) {
       toast('Browser storage is unavailable', {

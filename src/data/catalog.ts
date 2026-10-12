@@ -734,6 +734,14 @@ export function registerCustomCatalogItem(newItem: CatalogItem): void {
   }
 }
 
+export function unregisterCustomCatalogItem(id: string): void {
+  BY_ID.delete(id);
+  const idx = CATALOG.findIndex((c) => c.id === id);
+  if (idx !== -1) {
+    CATALOG.splice(idx, 1);
+  }
+}
+
 /**
  * Resolves a catalog item, falling back to a neutral placeholder when the id is
  * unknown (an old share link, a hand-edited JSON import). Returning a

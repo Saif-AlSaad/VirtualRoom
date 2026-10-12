@@ -32,7 +32,7 @@ import {
   wallFacingRotation,
   wallLength,
 } from '@/utils/roomGeometry';
-import { findFreeSpot, instanceRect } from '@/utils/placement';
+import { findFreeSpot, instanceRect, partitionRect } from '@/utils/placement';
 import { createProject, defaultRoom } from '@/utils/schema';
 
 /**
@@ -179,7 +179,7 @@ function emptyDoc(name: string, unit: Unit): DocumentState {
   return { name, unit, room: defaultRoom(), furniture: [] };
 }
 
-/** Clamps every opening and every object back inside a resized room. */
+/** Clamps every opening, partition, and object back inside a resized room. */
 function reflowToRoom(doc: DocumentState): void {
   const dims = doc.room.dimensions;
   for (const o of doc.room.openings) {
@@ -191,10 +191,9 @@ function reflowToRoom(doc: DocumentState): void {
   }
   for (const p of doc.room.partitions ?? []) {
     p.height = Math.min(p.height, dims.height);
-    const halfW = dims.width / 2;
-    const halfL = dims.length / 2;
-    p.position.x = Math.max(-halfW, Math.min(halfW, p.position.x));
-    p.position.z = Math.max(-halfL, Math.min(halfL, p.position.z));
+    const next = clampRectToRoom(partitionRect(p), dims.width, dims.length);
+    p.position.x = next.x;
+    p.position.z = next.z;
   }
   for (const f of doc.furniture) {
     const next = clampRectToRoom(instanceRect(f), dims.width, dims.length);
@@ -542,6 +541,11 @@ export const useEditor = create<EditorState>((set, get) => ({
       if (patch.height !== undefined) p.height = Math.max(0.2, patch.height);
       if (patch.finish !== undefined) p.finish = patch.finish;
       if (patch.name !== undefined) p.name = patch.name;
+      if (patch.position || patch.rotation !== undefined || patch.length !== undefined) {
+        const next = clampRectToRoom(partitionRect(p), d.room.dimensions.width, d.room.dimensions.length);
+        p.position.x = next.x;
+        p.position.z = next.z;
+      }
     };
     if (live) get().mutateLive(apply);
     else get().commit('Update interior wall', apply);
@@ -559,11 +563,18 @@ export const useEditor = create<EditorState>((set, get) => ({
     const newId = createId('ptn');
     get().commit('Duplicate interior wall', (d) => {
       d.room.partitions = d.room.partitions ?? [];
+      const dims = d.room.dimensions;
+      const desiredPos = { x: p.position.x + 0.3, z: p.position.z + 0.3 };
+      const clamped = clampRectToRoom(
+        partitionRect({ ...p, position: desiredPos }),
+        dims.width,
+        dims.length
+      );
       d.room.partitions.push({
         ...p,
         id: newId,
         name: p.name ? `${p.name} (Copy)` : 'Interior wall copy',
-        position: { x: p.position.x + 0.3, z: p.position.z + 0.3 },
+        position: clamped,
         finish: p.finish ? { ...p.finish } : undefined,
       });
     });

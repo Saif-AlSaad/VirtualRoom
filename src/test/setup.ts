@@ -19,3 +19,11 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
     }),
   });
 }
+
+if (typeof URL.createObjectURL !== 'function') {
+  URL.createObjectURL = () => `blob:mock-url-${Math.random().toString(36).slice(2)}`;
+}
+if (typeof URL.revokeObjectURL !== 'function') {
+  URL.revokeObjectURL = () => {};
+}
+

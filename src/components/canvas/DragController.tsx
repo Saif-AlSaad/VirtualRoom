@@ -5,7 +5,7 @@ import { useEditor } from '@/store/editorStore';
 import { useDrag } from '@/store/dragStore';
 import { useUI } from '@/store/uiStore';
 import { computeSnap } from '@/utils/snapping';
-import { instanceRect, isPlacementValid } from '@/utils/placement';
+import { instanceRect, isPlacementValid, partitionRect } from '@/utils/placement';
 import { clampRectToRoom, normalizeAngle } from '@/utils/collision';
 import { resolveCatalogItem } from '@/data/catalog';
 import type { Rect } from '@/types';
@@ -86,7 +86,10 @@ export function DragController() {
             f.position = clampRectToRoom(instanceRect(f), dims.width, dims.length);
           } else if (partition) {
             const p = (d.room.partitions ?? []).find((x) => x.id === target.id);
-            if (p) p.rotation = next;
+            if (p) {
+              p.rotation = next;
+              p.position = clampRectToRoom(partitionRect(p), dims.width, dims.length);
+            }
           }
         });
         return;
@@ -100,19 +103,41 @@ export function DragController() {
       if (primaryPartition) {
         const rawX = point.x + primary.offset.x;
         const rawZ = point.z + primary.offset.z;
-        const halfW = dims.width / 2;
-        const halfL = dims.length / 2;
-        const snapX = settings.grid ? Math.round(rawX / 0.1) * 0.1 : rawX;
-        const snapZ = settings.grid ? Math.round(rawZ / 0.1) * 0.1 : rawZ;
-        const nextX = THREE.MathUtils.clamp(snapX, -halfW, halfW);
-        const nextZ = THREE.MathUtils.clamp(snapZ, -halfL, halfL);
+        const currentRect = partitionRect(primaryPartition);
+        const desiredRect: Rect = {
+          ...currentRect,
+          cx: rawX,
+          cz: rawZ,
+        };
+
+        const movingIds = new Set(drag.targets.map((t) => t.id));
+        const otherPartitions = (doc.room.partitions ?? [])
+          .filter((p) => !movingIds.has(p.id))
+          .map((p) => partitionRect(p));
+        const furnitureObstacles = doc.furniture
+          .filter((f) => f.visible && !movingIds.has(f.instanceId))
+          .filter((f) => resolveCatalogItem(f.catalogId).collides)
+          .map((f) => instanceRect(f));
+
+        const obstacles = [...otherPartitions, ...furnitureObstacles];
+        const snapped = computeSnap(desiredRect, obstacles, dims, settings);
+        const clamped = clampRectToRoom(
+          { ...desiredRect, cx: snapped.position.x, cz: snapped.position.z },
+          dims.width,
+          dims.length
+        );
 
         editor.mutateLive((d) => {
           const p = (d.room.partitions ?? []).find((x) => x.id === primary.id);
           if (p) {
-            p.position.x = nextX;
-            p.position.z = nextZ;
+            p.position.x = clamped.x;
+            p.position.z = clamped.z;
           }
+        });
+
+        useDrag.setState({
+          guides: snapped.guides,
+          invalidReason: null,
         });
         return;
       }
@@ -128,10 +153,14 @@ export function DragController() {
       // Snapping is resolved against the primary object only; the rest of the
       // selection rides along on the same delta so the group stays rigid.
       const movingIds = new Set(drag.targets.map((t) => t.id));
-      const others: Rect[] = doc.furniture
+      const partitionObstacles = (doc.room.partitions ?? [])
+        .filter((p) => !movingIds.has(p.id))
+        .map((p) => partitionRect(p));
+      const furnitureObstacles = doc.furniture
         .filter((f) => f.visible && !movingIds.has(f.instanceId))
         .filter((f) => resolveCatalogItem(f.catalogId).collides)
         .map((f) => instanceRect(f));
+      const others: Rect[] = [...partitionObstacles, ...furnitureObstacles];
 
       const desiredRect: Rect = {
         ...instanceRect(primaryInstance),

@@ -251,3 +251,60 @@ export function hasClearance(c: Clearance): boolean {
 export function distance2D(a: Vec2, b: Vec2): number {
   return Math.hypot(a.x - b.x, a.z - b.z);
 }
+
+/**
+ * Finds the closest point on or inside an oriented rectangle to a point p on the floor plane.
+ */
+export function closestPointOnRect(p: Vec2, r: Rect): Vec2 {
+  const local = unrotateLocal(p.x - r.cx, p.z - r.cz, r.rot);
+  const hw = r.w / 2;
+  const hd = r.d / 2;
+  const clampedX = Math.max(-hw, Math.min(hw, local.x));
+  const clampedZ = Math.max(-hd, Math.min(hd, local.z));
+  const worldOffset = rotateLocal(clampedX, clampedZ, r.rot);
+  return { x: r.cx + worldOffset.x, z: r.cz + worldOffset.z };
+}
+
+/**
+ * Resolves 2D circle vs oriented rectangle intersection by pushing the circle
+ * center out along the contact normal so it slides smoothly along obstacles.
+ */
+export function resolveCircleRectCollision(pos: Vec2, radius: number, r: Rect): Vec2 {
+  const closest = closestPointOnRect(pos, r);
+  const dx = pos.x - closest.x;
+  const dz = pos.z - closest.z;
+  const distSq = dx * dx + dz * dz;
+
+  if (distSq < radius * radius) {
+    const dist = Math.sqrt(distSq);
+    if (dist > 1e-5) {
+      const overlap = radius - dist;
+      return {
+        x: pos.x + (dx / dist) * overlap,
+        z: pos.z + (dz / dist) * overlap,
+      };
+    } else {
+      // Circle center is inside the rectangle; push along the closest local axis
+      const local = unrotateLocal(pos.x - r.cx, pos.z - r.cz, r.rot);
+      const hw = r.w / 2;
+      const hd = r.d / 2;
+      const distToEdgeX = hw - Math.abs(local.x);
+      const distToEdgeZ = hd - Math.abs(local.z);
+
+      if (distToEdgeX < distToEdgeZ) {
+        const sign = local.x >= 0 ? 1 : -1;
+        const pushLocal = { x: sign * (hw + radius), z: local.z };
+        const world = rotateLocal(pushLocal.x, pushLocal.z, r.rot);
+        return { x: r.cx + world.x, z: r.cz + world.z };
+      } else {
+        const sign = local.z >= 0 ? 1 : -1;
+        const pushLocal = { x: local.x, z: sign * (hd + radius) };
+        const world = rotateLocal(pushLocal.x, pushLocal.z, r.rot);
+        return { x: r.cx + world.x, z: r.cz + world.z };
+      }
+    }
+  }
+
+  return pos;
+}
+
