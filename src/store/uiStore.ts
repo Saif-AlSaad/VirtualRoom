@@ -52,7 +52,7 @@ interface Preferences {
 }
 
 const DEFAULT_PREFS: Preferences = {
-  theme: 'system',
+  theme: 'dark',
   currency: 'USD',
   snap: DEFAULT_SNAP,
   showDimensions: true,

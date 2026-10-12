@@ -34,6 +34,23 @@ export default {
         danger: '#ef4444',
         warn: '#f59e0b',
         ok: '#10b981',
+        // Premium Dark Studio palette
+        studio: {
+          bg: '#101211',
+          sidebar: '#141815',
+          card: '#191D1A',
+          elevated: '#222823',
+          hover: '#292F2A',
+          accent: '#83B493',
+          'accent-hover': '#9BC8A8',
+          'accent-muted': '#344C3B',
+          text: '#F3F5F2',
+          'text-muted': '#A4AEA6',
+          'text-dim': '#778179',
+          border: '#2C332E',
+          divider: '#252B26',
+          danger: '#E57373',
+        },
       },
       fontFamily: {
         sans: [

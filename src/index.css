@@ -128,4 +128,24 @@
     -webkit-user-drag: none;
     user-select: none;
   }
+
+  /* Premium Dark Studio explicit classes */
+  .bg-studio-bg { background-color: #101211; }
+  .bg-studio-sidebar { background-color: #141815; }
+  .bg-studio-card { background-color: #191D1A; }
+  .bg-studio-elevated { background-color: #222823; }
+  .bg-studio-hover { background-color: #292F2A; }
+  .bg-studio-accent { background-color: #83B493; }
+  .bg-studio-accent-muted { background-color: #344C3B; }
+  
+  .text-studio-text { color: #F3F5F2; }
+  .text-studio-text-muted { color: #A4AEA6; }
+  .text-studio-text-dim { color: #778179; }
+  .text-studio-accent { color: #83B493; }
+  .text-studio-bg { color: #101211; }
+  .text-studio-danger { color: #E57373; }
+  
+  .border-studio-border { border-color: #2C332E; }
+  .border-studio-divider { border-color: #252B26; }
+  .border-studio-accent { border-color: #83B493; }
 }

@@ -89,14 +89,29 @@ interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: Size;
   active?: boolean;
   filled?: boolean;
+  showTooltip?: boolean;
+  tooltipSide?: 'top' | 'bottom';
+  tooltipAlign?: 'center' | 'left' | 'right';
 }
 
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
   (
-    { icon, label, variant = 'ghost', size = 'md', active, filled, className, ...rest },
+    {
+      icon,
+      label,
+      variant = 'ghost',
+      size = 'md',
+      active,
+      filled,
+      showTooltip = true,
+      tooltipSide = 'bottom',
+      tooltipAlign = 'center',
+      className,
+      ...rest
+    },
     ref
-  ) => (
-    <Tooltip content={label}>
+  ) => {
+    const btn = (
       <button
         ref={ref}
         type="button"
@@ -116,8 +131,16 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       >
         <Icon name={icon} filled={filled} className={size === 'sm' ? 'h-4 w-4' : 'h-[18px] w-[18px]'} />
       </button>
-    </Tooltip>
-  )
+    );
+
+    if (!showTooltip) return btn;
+
+    return (
+      <Tooltip content={label} side={tooltipSide} align={tooltipAlign}>
+        {btn}
+      </Tooltip>
+    );
+  }
 );
 IconButton.displayName = 'IconButton';
 
@@ -131,10 +154,12 @@ export function Tooltip({
   content,
   children,
   side = 'bottom',
+  align = 'center',
 }: {
   content: ReactNode;
   children: ReactNode;
   side?: 'top' | 'bottom';
+  align?: 'center' | 'left' | 'right';
 }) {
   const [open, setOpen] = useState(false);
   const timer = useRef<number>();
@@ -168,9 +193,12 @@ export function Tooltip({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
             className={clsx(
-              'pointer-events-none absolute left-1/2 z-50 -translate-x-1/2 whitespace-nowrap',
+              'pointer-events-none absolute z-50 whitespace-nowrap',
               'rounded-control bg-ink-900 px-2 py-1 text-caption font-medium text-white shadow-medium',
               'dark:bg-ink-100 dark:text-ink-900',
+              align === 'center' && 'left-1/2 -translate-x-1/2',
+              align === 'right' && 'right-0',
+              align === 'left' && 'left-0',
               side === 'bottom' ? 'top-[calc(100%+6px)]' : 'bottom-[calc(100%+6px)]'
             )}
           >

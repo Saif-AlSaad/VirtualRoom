@@ -28,6 +28,7 @@ interface Props {
   children: ReactNode;
   footer?: ReactNode;
   size?: 'sm' | 'md' | 'lg';
+  theme?: 'auto' | 'studio';
 }
 
 export function Modal({
@@ -38,6 +39,7 @@ export function Modal({
   children,
   footer,
   size = 'md',
+  theme = 'studio',
 }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreTo = useRef<HTMLElement | null>(null);
@@ -101,7 +103,7 @@ export function Modal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="absolute inset-0 bg-ink-950/45 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={onClose}
             aria-hidden="true"
           />
@@ -118,31 +120,75 @@ export function Modal({
             exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98, y: 4 }}
             transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
             className={clsx(
-              'relative flex max-h-[88vh] w-full flex-col overflow-hidden rounded-modal',
-              'bg-white shadow-high outline-none dark:bg-ink-900',
+              'relative flex max-h-[88vh] w-full flex-col overflow-hidden rounded-[18px]',
+              theme === 'studio'
+                ? 'border border-studio-border bg-studio-sidebar text-studio-text shadow-2xl outline-none'
+                : 'border border-ink-200/80 bg-white shadow-high outline-none dark:border-studio-border dark:bg-studio-sidebar dark:shadow-2xl',
               size === 'sm' && 'max-w-md',
               size === 'md' && 'max-w-xl',
               size === 'lg' && 'max-w-3xl'
             )}
           >
-            <header className="flex items-start justify-between gap-4 border-b border-ink-200 px-6 py-4 dark:border-ink-800">
-              <div>
-                <h2 id={titleId} className="text-section font-semibold text-ink-900 dark:text-sage-50">
+            <header
+              className={clsx(
+                'flex items-start justify-between gap-4 px-6 py-5',
+                theme === 'studio'
+                  ? 'border-b border-studio-divider'
+                  : 'border-b border-ink-100 dark:border-studio-divider'
+              )}
+            >
+              <div className="min-w-0 pr-2">
+                <h2
+                  id={titleId}
+                  className={clsx(
+                    'text-base font-semibold tracking-tight',
+                    theme === 'studio'
+                      ? 'text-studio-text'
+                      : 'text-ink-900 dark:text-studio-text'
+                  )}
+                >
                   {title}
                 </h2>
                 {description && (
-                  <p id={descId} className="mt-1 text-caption text-ink-500 dark:text-ink-400">
+                  <p
+                    id={descId}
+                    className={clsx(
+                      'mt-1 text-xs leading-relaxed',
+                      theme === 'studio'
+                        ? 'text-studio-text-muted'
+                        : 'text-ink-500 dark:text-studio-text-muted'
+                    )}
+                  >
                     {description}
                   </p>
                 )}
               </div>
-              <IconButton icon="close" label="Close dialog" onClick={onClose} size="sm" />
+              <IconButton
+                icon="close"
+                label="Close dialog"
+                onClick={onClose}
+                size="sm"
+                showTooltip={false}
+                className={clsx(
+                  'transition-colors',
+                  theme === 'studio'
+                    ? 'text-studio-text-dim hover:bg-studio-hover hover:text-studio-text'
+                    : 'text-ink-400 hover:bg-ink-100 hover:text-ink-700 dark:text-studio-text-dim dark:hover:bg-studio-hover dark:hover:text-studio-text'
+                )}
+              />
             </header>
 
             <div className="scroll-thin flex-1 overflow-y-auto px-6 py-5">{children}</div>
 
             {footer && (
-              <footer className="flex items-center justify-end gap-2 border-t border-ink-200 bg-ink-50 px-6 py-4 dark:border-ink-800 dark:bg-ink-950/40">
+              <footer
+                className={clsx(
+                  'flex items-center justify-end gap-2.5 px-6 py-4',
+                  theme === 'studio'
+                    ? 'border-t border-studio-divider bg-studio-bg/70'
+                    : 'border-t border-ink-100 bg-ink-50/50 dark:border-studio-divider dark:bg-studio-bg/60'
+                )}
+              >
                 {footer}
               </footer>
             )}
