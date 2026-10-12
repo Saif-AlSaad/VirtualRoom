@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import clsx from 'clsx';
-import type { WallSide } from '@/types';
+import { AnimatePresence, motion } from 'framer-motion';
+import type { OpeningKind, Unit, WallSide } from '@/types';
 import { useEditor } from '@/store/editorStore';
 import { useUI } from '@/store/uiStore';
 import {
@@ -13,21 +14,143 @@ import {
 } from '@/data/finishes';
 import { ROOM_LIMITS, occupiedFloorArea, totalCost } from '@/utils/placement';
 import { WALL_LABEL, WALL_SIDES, floorArea, wallLength } from '@/utils/roomGeometry';
-import { formatArea, formatLength, fromDisplay, parseLength, toDisplay, unitLabel } from '@/utils/units';
+import {
+  formatArea,
+  formatLength,
+  formatLengthShort,
+  fromDisplay,
+  parseLength,
+  toDisplay,
+  unitLabel,
+} from '@/utils/units';
 import { formatCurrency } from '@/utils/exporters';
 import { Icon } from './Icon';
-import { Button, ColorPicker, IconButton, NumberField, Section, Segmented, Switch } from './primitives';
+import { Button, ColorPicker, IconButton, Section, Segmented, Switch } from './primitives';
 
 /**
- * Room inspector: dimensions, finishes, openings and a live summary.
- *
- * Dimension edits go through the store's `setRoomDimensions`, which reflows
- * openings and furniture back inside the new box. That is the difference
- * between "resizing the room" and "silently corrupting the layout" — shrinking
- * a room must never leave a wardrobe embedded in a wall.
+ * Architectural room presets by unit system.
  */
+const getPresets = (unit: Unit) =>
+  unit === 'm'
+    ? [
+        { label: '3 × 3 m', w: 3.0, l: 3.0 },
+        { label: '4 × 4.5 m', w: 4.0, l: 4.5 },
+        { label: '5 × 6 m', w: 5.0, l: 6.0 },
+        { label: '6 × 8 m', w: 6.0, l: 8.0 },
+      ]
+    : [
+        { label: '10 × 10 ft', w: 3.048, l: 3.048 },
+        { label: '12 × 14 ft', w: 3.658, l: 4.267 },
+        { label: '15 × 18 ft', w: 4.572, l: 5.486 },
+        { label: '18 × 24 ft', w: 5.486, l: 7.315 },
+      ];
 
-function OpeningRow({ id }: { id: string }) {
+/**
+ * Compact dimension input cell for paired CAD-style inputs (e.g. W x L, H x T).
+ */
+function CompactDimensionField({
+  label,
+  badge,
+  value,
+  min,
+  max,
+  step = 0.01,
+  suffix,
+  unit,
+  onChange,
+  onCommit,
+}: {
+  label: string;
+  badge?: string;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  suffix?: string;
+  unit: Unit;
+  onChange: (val: number) => void;
+  onCommit?: (val: number) => void;
+}) {
+  const [text, setText] = useState<string | null>(null);
+  const display = toDisplay(value, unit);
+  const displayMin = toDisplay(min, unit);
+  const displayMax = toDisplay(max, unit);
+
+  const commitText = () => {
+    if (text === null) return;
+    const metres = parseLength(text, unit);
+    if (metres !== null) {
+      const clamped = Math.max(min, Math.min(max, metres));
+      onChange(clamped);
+      onCommit?.(clamped);
+    }
+    setText(null);
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5 rounded-control border border-ink-200/80 bg-ink-50/50 p-2.5 transition-all focus-within:border-sage-500 focus-within:bg-white focus-within:ring-1 focus-within:ring-sage-500/20 dark:border-ink-700/60 dark:bg-ink-800/30 dark:focus-within:border-sage-500 dark:focus-within:bg-ink-850">
+      <div className="flex items-center justify-between text-[11px]">
+        <span className="flex items-center gap-1.5 font-medium text-ink-600 dark:text-ink-300">
+          {badge && (
+            <span className="flex h-4 w-4 items-center justify-center rounded bg-ink-200/70 text-[9px] font-bold text-ink-700 dark:bg-ink-700 dark:text-sage-200">
+              {badge}
+            </span>
+          )}
+          {label}
+        </span>
+        <span className="text-[10px] font-medium tabular-nums text-ink-400">
+          {suffix ?? unitLabel(unit)}
+        </span>
+      </div>
+      <div className="relative">
+        <input
+          type="text"
+          inputMode="decimal"
+          value={text ?? display.toFixed(2)}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={commitText}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.currentTarget.blur();
+            if (e.key === 'Escape') {
+              setText(null);
+              e.currentTarget.blur();
+            }
+            e.stopPropagation();
+          }}
+          className="h-7 w-full rounded border border-ink-200 bg-white px-2 text-caption font-medium tabular-nums text-ink-900 transition-colors focus:border-sage-500 focus:outline-none dark:border-ink-700 dark:bg-ink-900 dark:text-sage-50"
+        />
+      </div>
+      <input
+        type="range"
+        min={displayMin}
+        max={displayMax}
+        step={step}
+        value={display}
+        onChange={(e) => {
+          const val = Number(e.target.value);
+          onChange(fromDisplay(val, unit));
+        }}
+        onPointerUp={() => onCommit?.(value)}
+        className="h-1 w-full cursor-pointer appearance-none rounded-full bg-ink-200 accent-sage-600 transition-opacity hover:opacity-100 dark:bg-ink-700"
+      />
+    </div>
+  );
+}
+
+/**
+ * Collapsible Opening card with compact layout and instant visual status.
+ */
+function OpeningCard({
+  id,
+  index,
+  isExpanded,
+  onToggle,
+}: {
+  id: string;
+  index: number;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
   const doc = useEditor((s) => s.doc);
   const updateOpening = useEditor((s) => s.updateOpening);
   const removeOpening = useEditor((s) => s.removeOpening);
@@ -38,129 +161,239 @@ function OpeningRow({ id }: { id: string }) {
 
   const dims = doc.room.dimensions;
   const maxOffset = wallLength(opening.wall, dims);
+  const isDoor = opening.kind === 'door';
 
   return (
-    <div className="flex flex-col gap-2.5 rounded-panel border border-ink-200 p-3 dark:border-ink-800">
-      <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-2 text-caption font-medium text-ink-700 dark:text-ink-200">
-          <Icon name={opening.kind === 'door' ? 'door' : 'window'} className="h-4 w-4 text-ink-400" />
-          {opening.kind === 'door' ? 'Door' : 'Window'}
-        </span>
-        <IconButton
-          size="sm"
-          icon="trash"
-          label={`Delete ${opening.kind}`}
-          onClick={() => removeOpening(opening.id)}
-        />
-      </div>
-
-      <label className="flex flex-col gap-1">
-        <span className="text-caption text-ink-500 dark:text-ink-400">Wall</span>
-        <select
-          value={opening.wall}
-          onChange={(e) => updateOpening(opening.id, { wall: e.target.value as WallSide })}
-          className="h-8 rounded-control border border-ink-200 bg-white px-2 text-caption dark:border-ink-700 dark:bg-ink-800 dark:text-sage-50"
-        >
-          {WALL_SIDES.map((side) => (
-            <option key={side} value={side}>
-              {WALL_LABEL[side]}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <NumberField
-        label="Position along wall"
-        suffix={unitLabel(unit)}
-        value={toDisplay(opening.offset, unit)}
-        min={0}
-        max={toDisplay(maxOffset, unit)}
-        step={0.01}
-        format={(v) => v.toFixed(2)}
-        parse={(t) => {
-          const m = parseLength(t, unit);
-          return m === null ? null : toDisplay(m, unit);
-        }}
-        onChange={(v) => updateOpening(opening.id, { offset: fromDisplay(v, unit) }, true)}
-        onCommit={(v) => updateOpening(opening.id, { offset: fromDisplay(v, unit) })}
-      />
-      <NumberField
-        label="Width"
-        suffix={unitLabel(unit)}
-        value={toDisplay(opening.width, unit)}
-        min={toDisplay(0.2, unit)}
-        max={toDisplay(maxOffset, unit)}
-        step={0.01}
-        format={(v) => v.toFixed(2)}
-        parse={(t) => {
-          const m = parseLength(t, unit);
-          return m === null ? null : toDisplay(m, unit);
-        }}
-        onChange={(v) => updateOpening(opening.id, { width: fromDisplay(v, unit) }, true)}
-        onCommit={(v) => updateOpening(opening.id, { width: fromDisplay(v, unit) })}
-      />
-      <NumberField
-        label="Height"
-        suffix={unitLabel(unit)}
-        value={toDisplay(opening.height, unit)}
-        min={toDisplay(0.2, unit)}
-        max={toDisplay(dims.height, unit)}
-        step={0.01}
-        format={(v) => v.toFixed(2)}
-        parse={(t) => {
-          const m = parseLength(t, unit);
-          return m === null ? null : toDisplay(m, unit);
-        }}
-        onChange={(v) => updateOpening(opening.id, { height: fromDisplay(v, unit) }, true)}
-        onCommit={(v) => updateOpening(opening.id, { height: fromDisplay(v, unit) })}
-      />
-
-      {opening.kind === 'window' ? (
-        <NumberField
-          label="Sill height"
-          suffix={unitLabel(unit)}
-          value={toDisplay(opening.sillHeight, unit)}
-          min={0}
-          max={toDisplay(Math.max(0, dims.height - opening.height), unit)}
-          step={0.01}
-          format={(v) => v.toFixed(2)}
-          parse={(t) => {
-            const m = parseLength(t, unit);
-            return m === null ? null : toDisplay(m, unit);
-          }}
-          onChange={(v) => updateOpening(opening.id, { sillHeight: fromDisplay(v, unit) }, true)}
-          onCommit={(v) => updateOpening(opening.id, { sillHeight: fromDisplay(v, unit) })}
-        />
-      ) : (
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex flex-col gap-1">
-            <span className="text-caption text-ink-500 dark:text-ink-400">Hinge</span>
-            <Segmented
-              size="sm"
-              label="Hinge side"
-              value={opening.hinge}
-              options={[
-                { value: 'left', label: 'Left' },
-                { value: 'right', label: 'Right' },
-              ]}
-              onChange={(hinge) => updateOpening(opening.id, { hinge })}
-            />
+    <div className="overflow-hidden rounded-panel border border-ink-200 bg-white transition-all duration-150 hover:border-ink-300 dark:border-ink-800 dark:bg-ink-900/90 dark:hover:border-ink-700">
+      {/* Header Row */}
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isExpanded}
+        className="flex w-full items-center justify-between gap-2 p-2.5 text-left transition-colors hover:bg-ink-50/70 dark:hover:bg-ink-800/40"
+      >
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div
+            className={clsx(
+              'flex h-7 w-7 shrink-0 items-center justify-center rounded-control transition-colors',
+              isDoor
+                ? 'bg-sage-500/15 text-sage-700 dark:bg-sage-500/20 dark:text-sage-300'
+                : 'bg-sky-500/15 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300'
+            )}
+          >
+            <Icon name={isDoor ? 'door' : 'window'} className="h-4 w-4" />
           </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-caption text-ink-500 dark:text-ink-400">Swing</span>
-            <Segmented
-              size="sm"
-              label="Swing direction"
-              value={opening.swing}
-              options={[
-                { value: 'in', label: 'In' },
-                { value: 'out', label: 'Out' },
-              ]}
-              onChange={(swing) => updateOpening(opening.id, { swing })}
-            />
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="truncate text-caption font-semibold text-ink-900 dark:text-sage-50">
+                {isDoor ? 'Door' : 'Window'} {index + 1}
+              </span>
+            </div>
+            <p className="truncate text-[11px] tabular-nums text-ink-400">
+              {WALL_LABEL[opening.wall].split(' ')[0]} wall ·{' '}
+              {formatLengthShort(opening.width, unit)} × {formatLengthShort(opening.height, unit)}
+            </p>
           </div>
         </div>
-      )}
+
+        <div className="flex items-center gap-1">
+          <IconButton
+            size="sm"
+            icon="trash"
+            label={`Delete ${opening.kind}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              removeOpening(opening.id);
+            }}
+          />
+          <span className="p-1 text-ink-400">
+            <Icon
+              name="chevron-down"
+              className={clsx(
+                'h-3.5 w-3.5 transition-transform duration-200',
+                isExpanded && '-rotate-180'
+              )}
+            />
+          </span>
+        </div>
+      </button>
+
+      {/* Expanded Controls */}
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            className="overflow-hidden border-t border-ink-100 dark:border-ink-800"
+          >
+            <div className="flex flex-col gap-3 bg-ink-50/50 p-3 dark:bg-ink-950/40">
+              {/* Wall Selector */}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[11px] font-medium text-ink-500 dark:text-ink-400">
+                  Wall placement
+                </span>
+                <div className="grid grid-cols-4 gap-1 rounded-control bg-ink-200/50 p-1 dark:bg-ink-800">
+                  {WALL_SIDES.map((side) => {
+                    const active = opening.wall === side;
+                    const sideName = side.charAt(0).toUpperCase() + side.slice(1);
+                    const compass =
+                      side === 'north'
+                        ? 'Back'
+                        : side === 'south'
+                          ? 'Front'
+                          : side === 'east'
+                            ? 'Right'
+                            : 'Left';
+                    return (
+                      <button
+                        key={side}
+                        type="button"
+                        onClick={() => updateOpening(opening.id, { wall: side })}
+                        className={clsx(
+                          'flex flex-col items-center justify-center rounded py-1 px-1 text-[11px] font-medium transition-all',
+                          active
+                            ? 'bg-white text-ink-900 shadow-subtle dark:bg-ink-700 dark:text-sage-50'
+                            : 'text-ink-500 hover:text-ink-800 dark:text-ink-400 dark:hover:text-sage-100'
+                        )}
+                      >
+                        <span className="font-semibold">{sideName}</span>
+                        <span className="text-[9px] opacity-60">({compass})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Position Along Wall with Center action */}
+              <div className="flex flex-col gap-1.5 rounded-control border border-ink-200/70 bg-white/80 p-2.5 shadow-subtle dark:border-ink-700/60 dark:bg-ink-900/60">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-medium text-ink-600 dark:text-ink-300">
+                    Position along wall
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => updateOpening(opening.id, { offset: maxOffset / 2 })}
+                      className="rounded bg-sage-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-sage-700 hover:bg-sage-500/20 dark:bg-sage-500/20 dark:text-sage-300"
+                      title="Center along wall"
+                    >
+                      Center
+                    </button>
+                    <span className="tabular-nums font-semibold text-ink-800 dark:text-sage-50">
+                      {toDisplay(opening.offset, unit).toFixed(2)} {unitLabel(unit)}
+                    </span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={toDisplay(maxOffset, unit)}
+                  step={0.01}
+                  value={toDisplay(opening.offset, unit)}
+                  onChange={(e) =>
+                    updateOpening(
+                      opening.id,
+                      { offset: fromDisplay(Number(e.target.value), unit) },
+                      true
+                    )
+                  }
+                  onPointerUp={(e) =>
+                    updateOpening(opening.id, {
+                      offset: fromDisplay(Number(e.currentTarget.value), unit),
+                    })
+                  }
+                  className="h-1 w-full cursor-pointer appearance-none rounded-full bg-ink-200 accent-sage-600 dark:bg-ink-700"
+                />
+                <div className="flex justify-between text-[10px] text-ink-400">
+                  <span>Start (0.00)</span>
+                  <span className="tabular-nums">
+                    Max {toDisplay(maxOffset, unit).toFixed(2)} {unitLabel(unit)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Dimensions: 2-column paired Width & Height */}
+              <div className="grid grid-cols-2 gap-2">
+                <CompactDimensionField
+                  label="Width"
+                  badge="W"
+                  value={opening.width}
+                  min={0.2}
+                  max={maxOffset}
+                  step={0.01}
+                  unit={unit}
+                  onChange={(w) => updateOpening(opening.id, { width: w }, true)}
+                  onCommit={(w) => updateOpening(opening.id, { width: w })}
+                />
+                <CompactDimensionField
+                  label="Height"
+                  badge="H"
+                  value={opening.height}
+                  min={0.2}
+                  max={dims.height}
+                  step={0.01}
+                  unit={unit}
+                  onChange={(h) => updateOpening(opening.id, { height: h }, true)}
+                  onCommit={(h) => updateOpening(opening.id, { height: h })}
+                />
+              </div>
+
+              {/* Window: Sill Height */}
+              {!isDoor && (
+                <CompactDimensionField
+                  label="Sill height"
+                  badge="S"
+                  value={opening.sillHeight}
+                  min={0}
+                  max={Math.max(0, dims.height - opening.height)}
+                  step={0.01}
+                  unit={unit}
+                  onChange={(s) => updateOpening(opening.id, { sillHeight: s }, true)}
+                  onCommit={(s) => updateOpening(opening.id, { sillHeight: s })}
+                />
+              )}
+
+              {/* Door: Hinge & Swing */}
+              {isDoor && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[11px] font-medium text-ink-500 dark:text-ink-400">
+                      Hinge
+                    </span>
+                    <Segmented
+                      size="sm"
+                      label="Hinge side"
+                      value={opening.hinge}
+                      options={[
+                        { value: 'left', label: 'Left' },
+                        { value: 'right', label: 'Right' },
+                      ]}
+                      onChange={(hinge) => updateOpening(opening.id, { hinge })}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[11px] font-medium text-ink-500 dark:text-ink-400">
+                      Swing
+                    </span>
+                    <Segmented
+                      size="sm"
+                      label="Swing direction"
+                      value={opening.swing}
+                      options={[
+                        { value: 'in', label: 'In' },
+                        { value: 'out', label: 'Out' },
+                      ]}
+                      onChange={(swing) => updateOpening(opening.id, { swing })}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -200,32 +433,51 @@ export function RoomPanel() {
   const cost = useMemo(() => totalCost(doc.furniture), [doc.furniture]);
   const density = area > 0 ? Math.min(1, occupied / area) : 0;
 
-  const lengthField = (
-    label: string,
-    key: 'width' | 'length' | 'height' | 'wallThickness',
-    min: number,
-    max: number
-  ) => (
-    <NumberField
-      key={key}
-      label={label}
-      suffix={unitLabel(unit)}
-      value={toDisplay(dims[key], unit)}
-      min={toDisplay(min, unit)}
-      max={toDisplay(max, unit)}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      parse={(t) => {
-        const m = parseLength(t, unit);
-        return m === null ? null : toDisplay(m, unit);
-      }}
-      onChange={(v) => setRoomDimensions({ [key]: fromDisplay(v, unit) })}
-    />
-  );
+  // Openings expanded state & filters
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
+    const first = doc.room.openings[0];
+    return first ? new Set([first.id]) : new Set();
+  });
+  const [openingFilter, setOpeningFilter] = useState<'all' | 'door' | 'window'>('all');
+
+  const toggleExpanded = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleAddOpening = (kind: OpeningKind, wall: WallSide) => {
+    const id = addOpening(kind, wall);
+    if (id) {
+      setExpandedIds((prev) => new Set([...prev, id]));
+    }
+  };
+
+  const filteredOpenings = useMemo(() => {
+    return doc.room.openings.filter((o) => {
+      if (openingFilter === 'door') return o.kind === 'door';
+      if (openingFilter === 'window') return o.kind === 'window';
+      return true;
+    });
+  }, [doc.room.openings, openingFilter]);
+
+  const presets = useMemo(() => getPresets(unit), [unit]);
 
   return (
     <>
-      <Section title="Dimensions" icon="ruler">
+      <Section
+        title="Dimensions"
+        icon="ruler"
+        action={
+          <span className="inline-flex items-center gap-1 rounded-full bg-sage-500/15 px-2.5 py-0.5 text-[11px] font-semibold tabular-nums text-sage-700 dark:text-sage-300">
+            {formatArea(area, unit)}
+          </span>
+        }
+      >
+        {/* Unit switch */}
         <div className="flex items-center justify-between">
           <span className="text-caption font-medium text-ink-500 dark:text-ink-400">Units</span>
           <Segmented
@@ -239,38 +491,206 @@ export function RoomPanel() {
             onChange={setUnit}
           />
         </div>
-        {lengthField('Width', 'width', ROOM_LIMITS.minWidth, ROOM_LIMITS.maxWidth)}
-        {lengthField('Length', 'length', ROOM_LIMITS.minLength, ROOM_LIMITS.maxLength)}
-        {lengthField('Wall height', 'height', ROOM_LIMITS.minHeight, ROOM_LIMITS.maxHeight)}
-        {lengthField(
-          'Wall thickness',
-          'wallThickness',
-          ROOM_LIMITS.minWallThickness,
-          ROOM_LIMITS.maxWallThickness
-        )}
-        <p className="text-[11px] text-ink-400">
-          Width and length are interior measurements — the usable floor.
-        </p>
+
+        {/* Floor dimensions: 2-column W & L */}
+        <div className="flex flex-col gap-2">
+          <span className="text-[11px] font-medium text-ink-500 dark:text-ink-400">
+            Floor plan (Interior)
+          </span>
+          <div className="grid grid-cols-2 gap-2">
+            <CompactDimensionField
+              label="Width"
+              badge="W"
+              value={dims.width}
+              min={ROOM_LIMITS.minWidth}
+              max={ROOM_LIMITS.maxWidth}
+              unit={unit}
+              onChange={(w) => setRoomDimensions({ width: w })}
+            />
+            <CompactDimensionField
+              label="Length"
+              badge="L"
+              value={dims.length}
+              min={ROOM_LIMITS.minLength}
+              max={ROOM_LIMITS.maxLength}
+              unit={unit}
+              onChange={(l) => setRoomDimensions({ length: l })}
+            />
+          </div>
+        </div>
+
+        {/* Quick Room Size Presets */}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-medium text-ink-500 dark:text-ink-400">
+              Room presets
+            </span>
+            <span className="text-[10px] text-ink-400">Standard footprints</span>
+          </div>
+          <div className="grid grid-cols-4 gap-1">
+            {presets.map((p) => {
+              const active =
+                Math.abs(dims.width - p.w) < 0.05 && Math.abs(dims.length - p.l) < 0.05;
+              return (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => setRoomDimensions({ width: p.w, length: p.l })}
+                  className={clsx(
+                    'rounded-control border px-1.5 py-1 text-center text-[10px] font-medium transition-all',
+                    active
+                      ? 'border-sage-500 bg-sage-50 text-sage-800 shadow-subtle dark:bg-sage-950/60 dark:text-sage-200'
+                      : 'border-ink-200/80 bg-white text-ink-600 hover:border-ink-300 hover:bg-ink-50 dark:border-ink-800 dark:bg-ink-900/60 dark:text-ink-300 dark:hover:bg-ink-800'
+                  )}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Wall & Structural Specs: 2-column Height & Thickness */}
+        <div className="flex flex-col gap-2">
+          <span className="text-[11px] font-medium text-ink-500 dark:text-ink-400">
+            Wall & vertical structure
+          </span>
+          <div className="grid grid-cols-2 gap-2">
+            <CompactDimensionField
+              label="Wall height"
+              badge="H"
+              value={dims.height}
+              min={ROOM_LIMITS.minHeight}
+              max={ROOM_LIMITS.maxHeight}
+              unit={unit}
+              onChange={(h) => setRoomDimensions({ height: h })}
+            />
+            <CompactDimensionField
+              label="Thickness"
+              badge="T"
+              value={dims.wallThickness}
+              min={ROOM_LIMITS.minWallThickness}
+              max={ROOM_LIMITS.maxWallThickness}
+              unit={unit}
+              onChange={(t) => setRoomDimensions({ wallThickness: t })}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 rounded-control bg-ink-50/80 p-2 text-[11px] text-ink-500 dark:bg-ink-800/40 dark:text-ink-400">
+          <Icon name="info" className="h-3.5 w-3.5 shrink-0 text-sage-600 dark:text-sage-400" />
+          <span>Width and length are interior measurements — the usable floor.</span>
+        </div>
       </Section>
 
-      <Section title="Openings" icon="door">
+      <Section
+        title="Openings"
+        icon="door"
+        action={
+          doc.room.openings.length > 0 ? (
+            <span className="rounded-full bg-ink-100 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-ink-600 dark:bg-ink-800 dark:text-ink-300">
+              {doc.room.openings.length}
+            </span>
+          ) : undefined
+        }
+      >
+        {/* Quick Add Action Bar */}
         <div className="grid grid-cols-2 gap-2">
-          <Button size="sm" icon="plus" onClick={() => addOpening('door', 'south')}>
-            Door
-          </Button>
-          <Button size="sm" icon="plus" onClick={() => addOpening('window', 'north')}>
-            Window
-          </Button>
+          <button
+            type="button"
+            onClick={() => handleAddOpening('door', 'south')}
+            className={clsx(
+              'group flex items-center justify-center gap-2 rounded-control border border-ink-200 bg-white px-3 py-2 text-caption font-medium shadow-subtle',
+              'transition-all duration-150 hover:border-sage-500 hover:bg-sage-50/40 hover:text-sage-900',
+              'dark:border-ink-700/80 dark:bg-ink-800/80 dark:text-sage-100 dark:hover:border-sage-500 dark:hover:bg-sage-950/40'
+            )}
+          >
+            <span className="flex h-5 w-5 items-center justify-center rounded bg-sage-500/15 text-sage-600 transition-colors group-hover:bg-sage-600 group-hover:text-white dark:text-sage-300">
+              <Icon name="door" className="h-3.5 w-3.5" />
+            </span>
+            <span>+ Add Door</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleAddOpening('window', 'north')}
+            className={clsx(
+              'group flex items-center justify-center gap-2 rounded-control border border-ink-200 bg-white px-3 py-2 text-caption font-medium shadow-subtle',
+              'transition-all duration-150 hover:border-sky-500 hover:bg-sky-50/40 hover:text-sky-900',
+              'dark:border-ink-700/80 dark:bg-ink-800/80 dark:text-sky-100 dark:hover:border-sky-500 dark:hover:bg-sky-950/40'
+            )}
+          >
+            <span className="flex h-5 w-5 items-center justify-center rounded bg-sky-500/15 text-sky-600 transition-colors group-hover:bg-sky-600 group-hover:text-white dark:text-sky-300">
+              <Icon name="window" className="h-3.5 w-3.5" />
+            </span>
+            <span>+ Add Window</span>
+          </button>
         </div>
+
+        {/* Filter Pills if multiple openings */}
+        {doc.room.openings.length > 1 && (
+          <div className="flex items-center gap-1 rounded-control bg-ink-100 p-0.5 text-[11px] dark:bg-ink-800">
+            <button
+              type="button"
+              onClick={() => setOpeningFilter('all')}
+              className={clsx(
+                'flex-1 rounded py-1 font-medium transition-all',
+                openingFilter === 'all'
+                  ? 'bg-white text-ink-900 shadow-subtle dark:bg-ink-700 dark:text-sage-50'
+                  : 'text-ink-500 hover:text-ink-800 dark:text-ink-400'
+              )}
+            >
+              All ({doc.room.openings.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpeningFilter('door')}
+              className={clsx(
+                'flex-1 rounded py-1 font-medium transition-all',
+                openingFilter === 'door'
+                  ? 'bg-white text-ink-900 shadow-subtle dark:bg-ink-700 dark:text-sage-50'
+                  : 'text-ink-500 hover:text-ink-800 dark:text-ink-400'
+              )}
+            >
+              Doors ({doc.room.openings.filter((o) => o.kind === 'door').length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpeningFilter('window')}
+              className={clsx(
+                'flex-1 rounded py-1 font-medium transition-all',
+                openingFilter === 'window'
+                  ? 'bg-white text-ink-900 shadow-subtle dark:bg-ink-700 dark:text-sage-50'
+                  : 'text-ink-500 hover:text-ink-800 dark:text-ink-400'
+              )}
+            >
+              Windows ({doc.room.openings.filter((o) => o.kind === 'window').length})
+            </button>
+          </div>
+        )}
+
+        {/* Openings List or Empty State */}
         {doc.room.openings.length === 0 ? (
-          <p className="text-caption text-ink-400">
-            No doors or windows yet. Openings stay attached to their wall when you
-            resize the room.
-          </p>
+          <div className="flex flex-col items-center justify-center rounded-panel border border-dashed border-ink-200 p-5 text-center dark:border-ink-800">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-ink-100 text-ink-400 dark:bg-ink-800">
+              <Icon name="door" className="h-4 w-4" />
+            </div>
+            <p className="mt-2 text-caption font-semibold text-ink-700 dark:text-ink-200">
+              No doors or windows yet
+            </p>
+            <p className="mt-0.5 text-[11px] text-ink-400">
+              Openings stay attached to their walls when the room is resized.
+            </p>
+          </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {doc.room.openings.map((o) => (
-              <OpeningRow key={o.id} id={o.id} />
+            {filteredOpenings.map((o, idx) => (
+              <OpeningCard
+                key={o.id}
+                id={o.id}
+                index={idx}
+                isExpanded={expandedIds.has(o.id)}
+                onToggle={() => toggleExpanded(o.id)}
+              />
             ))}
           </div>
         )}
