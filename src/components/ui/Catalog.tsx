@@ -6,7 +6,6 @@ import { CATALOG, CATEGORIES, getCatalogItem, searchCatalog } from '@/data/catal
 import { useEditor } from '@/store/editorStore';
 import { useUI } from '@/store/uiStore';
 import { formatLengthShort } from '@/utils/units';
-import { formatCurrency } from '@/utils/exporters';
 import { Icon } from './Icon';
 import { EmptyState, Skeleton, Tooltip } from './primitives';
 import { CustomModelUpload } from './CustomModelUpload';
@@ -31,7 +30,6 @@ const DRAG_MIME = 'application/x-roomcraft-catalog-id';
 function CatalogCard({ item }: { item: CatalogItem }) {
   const addFurniture = useEditor((s) => s.addFurniture);
   const unit = useEditor((s) => s.doc.unit);
-  const currency = useUI((s) => s.currency);
   const favorites = useUI((s) => s.favorites);
   const toggleFavorite = useUI((s) => s.toggleFavorite);
   const noteCatalogUse = useUI((s) => s.noteCatalogUse);
@@ -79,7 +77,6 @@ function CatalogCard({ item }: { item: CatalogItem }) {
           </span>
           <span className="text-[11px] tabular-nums text-ink-400">
             {formatLengthShort(item.size.w, unit)} × {formatLengthShort(item.size.d, unit)}
-            {item.price > 0 && ` · ${formatCurrency(item.price, currency)}`}
           </span>
         </div>
       </button>

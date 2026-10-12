@@ -8,7 +8,6 @@ import { resolveCatalogItem } from '@/data/catalog';
 import { ACCENT_WALL_COLORS, QUICK_SWATCHES, WALL_COLORS, WALL_PATTERNS } from '@/data/finishes';
 import { evaluatePlacement, indexIssues, instanceSize } from '@/utils/placement';
 import { formatLength, fromDisplay, parseLength, toDisplay, unitLabel } from '@/utils/units';
-import { formatCurrency } from '@/utils/exporters';
 import { Icon } from './Icon';
 import { Button, ColorPicker, EmptyState, IconButton, NumberField, Section, Switch, Tooltip } from './primitives';
 import { RoomPanel } from './RoomPanel';
@@ -290,7 +289,6 @@ function SelectionInspector() {
   const alignSelection = useEditor((s) => s.alignSelection);
   const distributeSelection = useEditor((s) => s.distributeSelection);
   const snapSelectionToFace = useEditor((s) => s.snapSelectionToFace);
-  const currency = useUI((s) => s.currency);
 
   const unit = doc.unit;
   const instance = useMemo(
@@ -321,10 +319,6 @@ function SelectionInspector() {
     const anyLocked = doc.furniture.some(
       (f) => selection.includes(f.instanceId) && f.locked
     );
-    const total = selection.reduce((sum, id) => {
-      const f = doc.furniture.find((x) => x.instanceId === id);
-      return sum + (f ? resolveCatalogItem(f.catalogId).price : 0);
-    }, 0);
 
     return (
       <>
@@ -332,7 +326,6 @@ function SelectionInspector() {
           <p className="text-body font-medium text-ink-900 dark:text-sage-50">
             {selection.length} items selected
           </p>
-          <p className="text-caption text-ink-400">{formatCurrency(total, currency)} total</p>
         </div>
 
         {issues.length > 0 && (
@@ -791,8 +784,7 @@ function SelectionInspector() {
           </Button>
         </div>
         <p className="text-[11px] text-ink-400">
-          {catalog.availability === 'available' ? 'In catalog' : catalog.availability} ·{' '}
-          {formatCurrency(catalog.price, currency)}
+          {catalog.availability === 'available' ? 'In catalog' : catalog.availability}
         </p>
       </Section>
     </>

@@ -5,20 +5,18 @@ import { useUI } from '@/store/uiStore';
 import { resolveCatalogItem } from '@/data/catalog';
 import { instanceSize } from '@/utils/placement';
 import { formatLength, unitLabel } from '@/utils/units';
-import { formatCurrency } from '@/utils/exporters';
 import { Icon } from './Icon';
 
 /**
  * Bottom inspection card for Mobile / Tablet & Read-Only Viewer mode.
  *
- * Lets touch users inspect placed furniture (dimensions, price, finish, note)
+ * Lets touch users inspect placed furniture (dimensions, finish, note)
  * by tapping items without accidentally dragging them across the room.
  */
 export function MobileInspector() {
   const selected = useSelectedInstance();
   const clearSelection = useEditor((s) => s.clearSelection);
   const unit = useEditor((s) => s.doc.unit);
-  const currency = useUI((s) => s.currency);
   const viewerMode = useUI((s) => s.viewerMode);
   const viewMode = useUI((s) => s.viewMode);
 
@@ -66,7 +64,7 @@ export function MobileInspector() {
                 )}
               </div>
               <p className="text-caption text-ink-500 dark:text-ink-400 capitalize">
-                {catalog.category} • {formatCurrency(catalog.price, currency)}
+                {catalog.category}
               </p>
             </div>
           </div>
