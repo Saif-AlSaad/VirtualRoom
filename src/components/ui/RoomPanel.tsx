@@ -398,6 +398,146 @@ function OpeningCard({
   );
 }
 
+/**
+ * SVG texture thumbnails for wall and floor patterns.
+ */
+function PatternThumbnail({ id, className }: { id: string; className?: string }) {
+  switch (id) {
+    case 'brick':
+      return (
+        <svg viewBox="0 0 24 16" className={className} fill="none" stroke="currentColor" strokeWidth="1">
+          <rect x="0" y="0" width="24" height="16" rx="2" fill="currentColor" fillOpacity="0.08" stroke="none" />
+          <line x1="0" y1="5" x2="24" y2="5" />
+          <line x1="0" y1="11" x2="24" y2="11" />
+          <line x1="6" y1="0" x2="6" y2="5" />
+          <line x1="18" y1="0" x2="18" y2="5" />
+          <line x1="12" y1="5" x2="12" y2="11" />
+          <line x1="6" y1="11" x2="6" y2="16" />
+          <line x1="18" y1="11" x2="18" y2="16" />
+        </svg>
+      );
+    case 'panels': // Slats
+      return (
+        <svg viewBox="0 0 24 16" className={className} fill="none" stroke="currentColor" strokeWidth="1.2">
+          <rect x="0" y="0" width="24" height="16" rx="2" fill="currentColor" fillOpacity="0.08" stroke="none" />
+          <line x1="4" y1="0" x2="4" y2="16" />
+          <line x1="8" y1="0" x2="8" y2="16" />
+          <line x1="12" y1="0" x2="12" y2="16" />
+          <line x1="16" y1="0" x2="16" y2="16" />
+          <line x1="20" y1="0" x2="20" y2="16" />
+        </svg>
+      );
+    case 'subway': // Tile
+      return (
+        <svg viewBox="0 0 24 16" className={className} fill="none" stroke="currentColor" strokeWidth="1">
+          <rect x="0" y="0" width="24" height="16" rx="2" fill="currentColor" fillOpacity="0.08" stroke="none" />
+          <line x1="0" y1="8" x2="24" y2="8" />
+          <line x1="8" y1="0" x2="8" y2="8" />
+          <line x1="16" y1="0" x2="16" y2="8" />
+          <line x1="4" y1="8" x2="4" y2="16" />
+          <line x1="12" y1="8" x2="12" y2="16" />
+          <line x1="20" y1="8" x2="20" y2="16" />
+        </svg>
+      );
+    case 'stripes':
+      return (
+        <svg viewBox="0 0 24 16" className={className} fill="none" stroke="currentColor" strokeWidth="1">
+          <rect x="0" y="0" width="24" height="16" rx="2" fill="currentColor" fillOpacity="0.08" stroke="none" />
+          <line x1="3" y1="0" x2="3" y2="16" strokeDasharray="2 1" />
+          <line x1="9" y1="0" x2="9" y2="16" strokeDasharray="2 1" />
+          <line x1="15" y1="0" x2="15" y2="16" strokeDasharray="2 1" />
+          <line x1="21" y1="0" x2="21" y2="16" strokeDasharray="2 1" />
+        </svg>
+      );
+    case 'concrete':
+      return (
+        <svg viewBox="0 0 24 16" className={className} fill="none">
+          <rect x="0" y="0" width="24" height="16" rx="2" fill="currentColor" fillOpacity="0.12" />
+          <circle cx="5" cy="4" r="0.75" fill="currentColor" opacity="0.6" />
+          <circle cx="12" cy="7" r="1" fill="currentColor" opacity="0.6" />
+          <circle cx="18" cy="4" r="0.75" fill="currentColor" opacity="0.6" />
+          <circle cx="8" cy="12" r="0.8" fill="currentColor" opacity="0.6" />
+          <circle cx="16" cy="11" r="0.9" fill="currentColor" opacity="0.6" />
+        </svg>
+      );
+    case 'planks':
+      return (
+        <svg viewBox="0 0 24 16" className={className} fill="none" stroke="currentColor" strokeWidth="1">
+          <rect x="0" y="0" width="24" height="16" rx="2" fill="currentColor" fillOpacity="0.08" stroke="none" />
+          <line x1="0" y1="5.5" x2="24" y2="5.5" />
+          <line x1="0" y1="10.5" x2="24" y2="10.5" />
+          <line x1="7" y1="0" x2="7" y2="5.5" />
+          <line x1="17" y1="5.5" x2="17" y2="10.5" />
+          <line x1="10" y1="10.5" x2="10" y2="16" />
+        </svg>
+      );
+    case 'herringbone':
+      return (
+        <svg viewBox="0 0 24 16" className={className} fill="none" stroke="currentColor" strokeWidth="1">
+          <rect x="0" y="0" width="24" height="16" rx="2" fill="currentColor" fillOpacity="0.08" stroke="none" />
+          <path d="M4 2 L12 8 L4 14" />
+          <path d="M12 2 L20 8 L12 14" />
+        </svg>
+      );
+    case 'tiles':
+      return (
+        <svg viewBox="0 0 24 16" className={className} fill="none" stroke="currentColor" strokeWidth="1">
+          <rect x="0" y="0" width="24" height="16" rx="2" fill="currentColor" fillOpacity="0.08" stroke="none" />
+          <line x1="8" y1="0" x2="8" y2="16" />
+          <line x1="16" y1="0" x2="16" y2="16" />
+          <line x1="0" y1="8" x2="24" y2="8" />
+        </svg>
+      );
+    default: // plain / plaster
+      return (
+        <svg viewBox="0 0 24 16" className={className} fill="none">
+          <rect x="0" y="0" width="24" height="16" rx="2" fill="currentColor" fillOpacity="0.1" />
+        </svg>
+      );
+  }
+}
+
+/**
+ * Visual partition creation tiles.
+ */
+const PARTITION_PRESETS = [
+  {
+    type: 'full' as const,
+    label: 'Full Wall',
+    sub: 'Floor to ceiling',
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6">
+        <rect x="5" y="3" width="14" height="18" rx="1.5" fill="currentColor" fillOpacity="0.15" />
+        <line x1="4" y1="21" x2="20" y2="21" strokeWidth="2" />
+      </svg>
+    ),
+  },
+  {
+    type: 'half' as const,
+    label: 'Half Wall',
+    sub: '1.1m counter',
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6">
+        <rect x="5" y="11" width="14" height="10" rx="1.5" fill="currentColor" fillOpacity="0.15" />
+        <line x1="4" y1="21" x2="20" y2="21" strokeWidth="2" />
+        <line x1="5" y1="11" x2="19" y2="11" strokeDasharray="2 2" strokeOpacity="0.6" />
+      </svg>
+    ),
+  },
+  {
+    type: 'screen' as const,
+    label: 'Divider',
+    sub: 'Open screen',
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6">
+        <rect x="5" y="4" width="14" height="17" rx="1.5" />
+        <line x1="9.5" y1="4" x2="9.5" y2="21" />
+        <line x1="14.5" y1="4" x2="14.5" y2="21" />
+      </svg>
+    ),
+  },
+];
+
 export function RoomPanel() {
   const doc = useEditor((s) => s.doc);
   const setRoomDimensions = useEditor((s) => s.setRoomDimensions);
@@ -439,6 +579,7 @@ export function RoomPanel() {
     return first ? new Set([first.id]) : new Set();
   });
   const [openingFilter, setOpeningFilter] = useState<'all' | 'door' | 'window'>('all');
+  const [finishTab, setFinishTab] = useState<'walls' | 'floor'>('walls');
 
   const toggleExpanded = (id: string) => {
     setExpandedIds((prev) => {
@@ -696,28 +837,64 @@ export function RoomPanel() {
         )}
       </Section>
 
-      <Section title="Interior Partition Walls" icon="layers">
+      <Section
+        title="Interior Partition Walls"
+        icon="layers"
+        action={
+          (doc.room.partitions ?? []).length > 0 ? (
+            <span className="rounded-full bg-ink-100 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-ink-600 dark:bg-ink-800 dark:text-ink-300">
+              {(doc.room.partitions ?? []).length}
+            </span>
+          ) : undefined
+        }
+      >
+        {/* Visual Partition Creation Tiles */}
         <div className="flex flex-col gap-2">
-          <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
-            Add divider or wall
+          <span className="text-[11px] font-medium text-ink-500 dark:text-ink-400">
+            Add interior wall or divider
           </span>
-          <div className="grid grid-cols-3 gap-1.5">
-            <Button size="sm" icon="plus" onClick={() => addPartition('full')}>
-              Full Wall
-            </Button>
-            <Button size="sm" icon="plus" onClick={() => addPartition('half')}>
-              Half Wall
-            </Button>
-            <Button size="sm" icon="plus" onClick={() => addPartition('screen')}>
-              Divider
-            </Button>
+          <div className="grid grid-cols-3 gap-2">
+            {PARTITION_PRESETS.map((p) => (
+              <button
+                key={p.type}
+                type="button"
+                onClick={() => {
+                  const id = addPartition(p.type);
+                  if (id) select(id);
+                }}
+                className={clsx(
+                  'group flex flex-col items-center justify-center gap-1 rounded-control border border-ink-200 bg-white p-2.5 text-center shadow-subtle transition-all duration-150',
+                  'hover:border-sage-500 hover:bg-sage-50/40 hover:shadow-medium',
+                  'dark:border-ink-700/80 dark:bg-ink-800/80 dark:hover:border-sage-500 dark:hover:bg-sage-950/40'
+                )}
+              >
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sage-500/10 text-sage-600 transition-colors group-hover:bg-sage-600 group-hover:text-white dark:bg-sage-500/20 dark:text-sage-300">
+                  {p.icon}
+                </div>
+                <span className="text-[11px] font-semibold text-ink-900 dark:text-sage-50">
+                  {p.label}
+                </span>
+                <span className="text-[9px] text-ink-400 leading-none">
+                  {p.sub}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
 
+        {/* Partition Items List or Empty State */}
         {(doc.room.partitions ?? []).length === 0 ? (
-          <p className="text-caption text-ink-400">
-            No interior walls yet. Add one to divide open-plan rooms, define alcoves, or create half-wall kitchen counters.
-          </p>
+          <div className="flex flex-col items-center justify-center rounded-panel border border-dashed border-ink-200 p-4 text-center dark:border-ink-800">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ink-100 text-ink-400 dark:bg-ink-800">
+              <Icon name="layers" className="h-4 w-4" />
+            </div>
+            <p className="mt-1.5 text-caption font-semibold text-ink-700 dark:text-ink-200">
+              No interior partitions yet
+            </p>
+            <p className="mt-0.5 text-[11px] text-ink-400">
+              Divide open-plan areas, define alcoves, or create half-wall kitchen counters.
+            </p>
+          </div>
         ) : (
           <div className="flex flex-col gap-1.5">
             {(doc.room.partitions ?? []).map((p) => {
@@ -727,29 +904,48 @@ export function RoomPanel() {
                   key={p.id}
                   onClick={() => select(p.id)}
                   className={clsx(
-                    'flex cursor-pointer items-center justify-between gap-2 rounded-control border px-3 py-2 text-left transition-colors',
+                    'group flex cursor-pointer items-center justify-between gap-2.5 rounded-control border p-2.5 text-left transition-all',
                     active
-                      ? 'border-sage-500 bg-sage-50/60 text-sage-900 dark:bg-sage-950/30 dark:text-sage-100'
-                      : 'border-ink-200 hover:border-ink-300 hover:bg-ink-50 dark:border-ink-700 dark:hover:bg-ink-800'
+                      ? 'border-sage-500 bg-sage-50/80 shadow-subtle dark:border-sage-500 dark:bg-sage-950/40'
+                      : 'border-ink-200 bg-white hover:border-ink-300 hover:bg-ink-50/60 dark:border-ink-800 dark:bg-ink-900 dark:hover:border-ink-700'
                   )}
                 >
-                  <div className="min-w-0">
-                    <p className="truncate text-caption font-medium">
-                      {p.name || 'Interior Wall'}
-                    </p>
-                    <p className="text-[11px] text-ink-400">
-                      {formatLength(p.length, unit)} · {formatLength(p.height, unit)} tall
-                    </p>
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <div
+                      className={clsx(
+                        'flex h-7 w-7 shrink-0 items-center justify-center rounded-control transition-colors',
+                        active
+                          ? 'bg-sage-600 text-white'
+                          : 'bg-ink-100 text-ink-600 dark:bg-ink-800 dark:text-ink-300'
+                      )}
+                    >
+                      <Icon name="layers" className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-caption font-semibold text-ink-900 dark:text-sage-50">
+                        {p.name || 'Interior Partition'}
+                      </p>
+                      <p className="text-[11px] tabular-nums text-ink-400">
+                        {formatLength(p.length, unit)} · {formatLength(p.height, unit)} tall
+                      </p>
+                    </div>
                   </div>
-                  <IconButton
-                    size="sm"
-                    icon="trash"
-                    label="Delete wall"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removePartition(p.id);
-                    }}
-                  />
+                  <div className="flex items-center gap-1">
+                    {active && (
+                      <span className="rounded bg-sage-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-sage-700 dark:text-sage-300">
+                        Selected
+                      </span>
+                    )}
+                    <IconButton
+                      size="sm"
+                      icon="trash"
+                      label="Delete partition"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removePartition(p.id);
+                      }}
+                    />
+                  </div>
                 </div>
               );
             })}
@@ -757,245 +953,367 @@ export function RoomPanel() {
         )}
       </Section>
 
-      <Section title="Finishes" icon="sparkle">
-        {/* Wall Target: All Walls vs North / South / East / West */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
-              Wall target
-            </span>
-            {selectedWallSide !== 'all' ? (
-              doc.room.wallOverrides?.[selectedWallSide] ? (
-                <span className="rounded-control bg-sage-100 px-1.5 py-0.5 text-[10px] font-semibold text-sage-800 dark:bg-sage-950/60 dark:text-sage-300">
-                  Accent Wall
-                </span>
-              ) : (
-                <span className="text-[10px] text-ink-400">Room Default</span>
-              )
-            ) : null}
-          </div>
-          <Segmented
-            size="sm"
-            label="Wall target"
-            value={selectedWallSide}
-            options={[
-              { value: 'all', label: 'All Walls' },
-              { value: 'north', label: 'North' },
-              { value: 'south', label: 'South' },
-              { value: 'east', label: 'East' },
-              { value: 'west', label: 'West' },
-            ]}
-            onChange={(val) => setSelectedWallSide(val as WallSide | 'all')}
-          />
+      <Section
+        title="Finishes"
+        icon="sparkle"
+        action={
+          <span className="inline-flex items-center gap-1 rounded-full bg-sage-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sage-700 dark:text-sage-300">
+            {finishTab === 'walls'
+              ? selectedWallSide === 'all'
+                ? 'All Walls'
+                : `${WALL_LABEL[selectedWallSide].split(' ')[0]} Accent`
+              : doc.room.floor.pattern}
+          </span>
+        }
+      >
+        {/* Studio Switcher Tabs */}
+        <div className="flex items-center gap-1 rounded-control bg-ink-100 p-0.5 text-[11px] dark:bg-ink-800">
+          <button
+            type="button"
+            onClick={() => setFinishTab('walls')}
+            className={clsx(
+              'flex flex-1 items-center justify-center gap-1.5 rounded py-1.5 font-semibold transition-all',
+              finishTab === 'walls'
+                ? 'bg-white text-ink-900 shadow-subtle dark:bg-ink-700 dark:text-sage-50'
+                : 'text-ink-500 hover:text-ink-800 dark:text-ink-400'
+            )}
+          >
+            <Icon name="palette" className="h-3.5 w-3.5" />
+            <span>Walls & Accents</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFinishTab('floor')}
+            className={clsx(
+              'flex flex-1 items-center justify-center gap-1.5 rounded py-1.5 font-semibold transition-all',
+              finishTab === 'floor'
+                ? 'bg-white text-ink-900 shadow-subtle dark:bg-ink-700 dark:text-sage-50'
+                : 'text-ink-500 hover:text-ink-800 dark:text-ink-400'
+            )}
+          >
+            <Icon name="grid" className="h-3.5 w-3.5" />
+            <span>Flooring & Tiles</span>
+          </button>
         </div>
 
-        {/* Accent wall status card when an individual wall is selected */}
-        {selectedWallSide !== 'all' && (
-          doc.room.wallOverrides?.[selectedWallSide] ? (
-            <div className="flex items-center justify-between rounded-control border border-sage-300 bg-sage-50/60 p-2 text-caption dark:border-sage-800 dark:bg-sage-950/30">
-              <div className="min-w-0">
-                <p className="font-semibold text-sage-900 dark:text-sage-100">
-                  {WALL_LABEL[selectedWallSide]} Accent Wall
-                </p>
-                <p className="text-[11px] text-sage-600 dark:text-sage-400">
-                  Custom finish applied to this wall
-                </p>
+        {/* ── WALLS TAB ─────────────────────────────────────────── */}
+        {finishTab === 'walls' && (
+          <div className="flex flex-col gap-3.5 pt-0.5">
+            {/* Wall Scope: All Walls vs Accent Wall */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-medium text-ink-500 dark:text-ink-400">Target wall</span>
+                {selectedWallSide !== 'all' ? (
+                  doc.room.wallOverrides?.[selectedWallSide] ? (
+                    <span className="rounded bg-sage-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-sage-700 dark:text-sage-300">
+                      Custom Accent
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-ink-400">Matches Room Base</span>
+                  )
+                ) : (
+                  <span className="text-[10px] text-ink-400">All 4 Walls</span>
+                )}
               </div>
-              <Button
+              <Segmented
                 size="sm"
-                variant="ghost"
-                onClick={() => resetWallSide(selectedWallSide)}
-              >
-                Reset
-              </Button>
+                label="Wall target"
+                value={selectedWallSide}
+                options={[
+                  { value: 'all', label: 'All Walls' },
+                  { value: 'north', label: 'North' },
+                  { value: 'south', label: 'South' },
+                  { value: 'east', label: 'East' },
+                  { value: 'west', label: 'West' },
+                ]}
+                onChange={(val) => setSelectedWallSide(val as WallSide | 'all')}
+              />
             </div>
-          ) : (
-            <div className="flex items-center justify-between rounded-control border border-dashed border-ink-300 bg-ink-50/40 p-2 text-caption dark:border-ink-700 dark:bg-ink-800/30">
-              <div className="min-w-0">
-                <p className="font-medium text-ink-700 dark:text-ink-200">
-                  {WALL_LABEL[selectedWallSide]} Wall
-                </p>
-                <p className="text-[11px] text-ink-400">
-                  Currently matching base walls
-                </p>
+
+            {/* Accent Wall Status Banner */}
+            {selectedWallSide !== 'all' && (
+              doc.room.wallOverrides?.[selectedWallSide] ? (
+                <div className="flex items-center justify-between rounded-control border border-sage-300 bg-sage-50/70 p-2 text-caption dark:border-sage-800/80 dark:bg-sage-950/30">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sage-900 dark:text-sage-100">
+                      {WALL_LABEL[selectedWallSide]} Accent Wall
+                    </p>
+                    <p className="text-[10px] text-sage-600 dark:text-sage-400">
+                      Custom pattern & paint active on this wall
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => resetWallSide(selectedWallSide)}
+                  >
+                    Reset
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between rounded-control border border-dashed border-ink-300 bg-ink-50/40 p-2 text-caption dark:border-ink-700 dark:bg-ink-800/30">
+                  <div className="min-w-0">
+                    <p className="font-medium text-ink-700 dark:text-ink-200">
+                      {WALL_LABEL[selectedWallSide]} Wall
+                    </p>
+                    <p className="text-[10px] text-ink-400">
+                      Currently inherits the base room finish
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setWallSideColor(selectedWallSide, doc.room.walls.color)}
+                  >
+                    Customize
+                  </Button>
+                </div>
+              )
+            )}
+
+            {/* Active accents quick-jump pills when All Walls is selected */}
+            {selectedWallSide === 'all' &&
+              doc.room.wallOverrides &&
+              Object.keys(doc.room.wallOverrides).length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 rounded-control bg-sage-50/60 p-2 dark:bg-sage-950/25">
+                  <span className="text-[11px] font-medium text-sage-800 dark:text-sage-300">
+                    Active Accents:
+                  </span>
+                  {WALL_SIDES.filter((s) => !!doc.room.wallOverrides?.[s]).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setSelectedWallSide(s)}
+                      className="rounded-control border border-sage-200 bg-white px-2 py-0.5 text-[10px] font-medium text-ink-700 shadow-subtle transition-all hover:border-sage-400 hover:text-sage-700 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200"
+                    >
+                      {WALL_LABEL[s].split(' ')[0]} &rarr;
+                    </button>
+                  ))}
+                </div>
+              )}
+
+            {/* Wall Pattern 2-Column Gallery */}
+            <div className="flex flex-col gap-2">
+              <span className="text-[11px] font-medium text-ink-500 dark:text-ink-400">
+                {selectedWallSide === 'all'
+                  ? 'Wall pattern & texture'
+                  : `${WALL_LABEL[selectedWallSide]} wall pattern`}
+              </span>
+              <div role="radiogroup" aria-label="Wall pattern" className="grid grid-cols-2 gap-2">
+                {WALL_PATTERNS.map((p) => {
+                  const activeFinish =
+                    selectedWallSide === 'all'
+                      ? doc.room.walls
+                      : (doc.room.wallOverrides?.[selectedWallSide] ?? doc.room.walls);
+                  const active = (activeFinish.pattern ?? 'plain') === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => setWallSidePattern(selectedWallSide, p.id)}
+                      className={clsx(
+                        'group flex items-start gap-2.5 rounded-control border p-2 text-left transition-all',
+                        active
+                          ? 'border-sage-500 bg-sage-50/80 shadow-subtle dark:border-sage-500 dark:bg-sage-950/40'
+                          : 'border-ink-200 bg-white hover:border-ink-300 hover:bg-ink-50 dark:border-ink-800 dark:bg-ink-900 dark:hover:border-ink-700'
+                      )}
+                    >
+                      <div
+                        className={clsx(
+                          'flex h-8 w-8 shrink-0 items-center justify-center rounded transition-colors',
+                          active
+                            ? 'text-sage-700 dark:text-sage-300'
+                            : 'text-ink-400 group-hover:text-ink-600 dark:text-ink-500 dark:group-hover:text-ink-300'
+                        )}
+                      >
+                        <PatternThumbnail id={p.id} className="h-6 w-6" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <span
+                            className={clsx(
+                              'truncate text-[11px] font-semibold',
+                              active
+                                ? 'text-sage-900 dark:text-sage-50'
+                                : 'text-ink-800 dark:text-ink-200'
+                            )}
+                          >
+                            {p.name}
+                          </span>
+                          {active && (
+                            <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-sage-600 text-white">
+                              <Icon name="check" className="h-2.5 w-2.5" />
+                            </span>
+                          )}
+                        </div>
+                        <p className="line-clamp-2 text-[10px] leading-tight text-ink-400">
+                          {p.description}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => setWallSideColor(selectedWallSide, doc.room.walls.color)}
-              >
-                Customize
-              </Button>
             </div>
-          )
+
+            {/* Wall Colour Studio */}
+            <div className="flex flex-col gap-2">
+              <span className="text-[11px] font-medium text-ink-500 dark:text-ink-400">
+                {selectedWallSide === 'all'
+                  ? 'Wall colour & accents'
+                  : `${WALL_LABEL[selectedWallSide]} wall colour`}
+              </span>
+              <ColorPicker
+                label={
+                  selectedWallSide === 'all'
+                    ? 'Wall colour'
+                    : `${WALL_LABEL[selectedWallSide]} wall colour`
+                }
+                presets={WALL_COLORS}
+                secondaryPresets={ACCENT_WALL_COLORS}
+                secondaryLabel="Designer Accents"
+                value={
+                  selectedWallSide === 'all'
+                    ? doc.room.walls.color
+                    : (doc.room.wallOverrides?.[selectedWallSide]?.color ?? doc.room.walls.color)
+                }
+                onChange={(c) => setWallSideColor(selectedWallSide, c)}
+              />
+            </div>
+          </div>
         )}
 
-        {/* Active accents quick-pills when "All Walls" is selected */}
-        {selectedWallSide === 'all' &&
-          doc.room.wallOverrides &&
-          Object.keys(doc.room.wallOverrides).length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 rounded-control bg-sage-50/50 p-2 dark:bg-sage-950/20">
-              <span className="text-[11px] font-medium text-sage-800 dark:text-sage-300">
-                Active Accents:
-              </span>
-              {WALL_SIDES.filter((s) => !!doc.room.wallOverrides?.[s]).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setSelectedWallSide(s)}
-                  className="rounded-control bg-white px-2 py-0.5 text-[10px] font-medium text-ink-700 shadow-sm transition-colors hover:text-sage-700 dark:bg-ink-800 dark:text-ink-200"
-                >
-                  {WALL_LABEL[s]} Wall &rarr;
-                </button>
-              ))}
+        {/* ── FLOORING TAB ──────────────────────────────────────── */}
+        {finishTab === 'floor' && (
+          <div className="flex flex-col gap-3.5 pt-0.5">
+            {/* Quick Complete Flooring Presets */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium text-ink-500 dark:text-ink-400">
+                  Curated floor materials
+                </span>
+                <span className="text-[10px] text-ink-400">1-click complete styling</span>
+              </div>
+              <div role="radiogroup" aria-label="Flooring presets" className="grid grid-cols-2 gap-1.5">
+                {FLOOR_PRESETS.map((preset) => {
+                  const active =
+                    doc.room.floor.color.toLowerCase() === preset.color.toLowerCase() &&
+                    doc.room.floor.pattern === preset.pattern;
+                  return (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => setFloor({ color: preset.color, pattern: preset.pattern })}
+                      className={clsx(
+                        'flex items-center gap-2 rounded-control border p-2 text-left transition-all',
+                        active
+                          ? 'border-sage-500 bg-sage-50/80 shadow-subtle dark:border-sage-500 dark:bg-sage-950/40'
+                          : 'border-ink-200 bg-white hover:border-ink-300 hover:bg-ink-50 dark:border-ink-800 dark:bg-ink-900 dark:hover:border-ink-700'
+                      )}
+                    >
+                      <span
+                        className="h-4 w-4 shrink-0 rounded-full border border-black/15 shadow-subtle dark:border-white/20"
+                        style={{ backgroundColor: preset.color }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <span
+                          className={clsx(
+                            'block truncate text-[11px] font-semibold',
+                            active
+                              ? 'text-sage-900 dark:text-sage-50'
+                              : 'text-ink-800 dark:text-ink-200'
+                          )}
+                        >
+                          {preset.name}
+                        </span>
+                        <span className="block text-[9px] text-ink-400 capitalize">
+                          {preset.pattern}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          )}
 
-        {/* Wall pattern */}
-        <div className="flex flex-col gap-2">
-          <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
-            {selectedWallSide === 'all'
-              ? 'Wall pattern'
-              : `${WALL_LABEL[selectedWallSide]} wall pattern`}
-          </span>
-          <div role="radiogroup" aria-label="Wall pattern" className="grid grid-cols-3 gap-1.5">
-            {WALL_PATTERNS.map((p) => {
-              const activeFinish =
-                selectedWallSide === 'all'
-                  ? doc.room.walls
-                  : (doc.room.wallOverrides?.[selectedWallSide] ?? doc.room.walls);
-              const active = (activeFinish.pattern ?? 'plain') === p.id;
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  onClick={() => setWallSidePattern(selectedWallSide, p.id)}
-                  className={clsx(
-                    'flex flex-col items-start gap-0.5 rounded-control border p-1.5 text-left text-[11px]',
-                    'transition-colors duration-150',
-                    active
-                      ? 'border-sage-500 bg-sage-50 text-sage-800 dark:bg-sage-900/30 dark:text-sage-100'
-                      : 'border-ink-200 text-ink-600 hover:border-ink-300 dark:border-ink-700 dark:text-ink-300'
-                  )}
-                >
-                  <span className="font-medium truncate w-full">{p.name}</span>
-                  <span className="text-[9px] text-ink-400 leading-tight truncate w-full">
-                    {p.description}
-                  </span>
-                </button>
-              );
-            })}
+            {/* Custom Floor Pattern */}
+            <div className="flex flex-col gap-2">
+              <span className="text-[11px] font-medium text-ink-500 dark:text-ink-400">
+                Floor pattern & layout
+              </span>
+              <div role="radiogroup" aria-label="Floor pattern" className="grid grid-cols-2 gap-2">
+                {FLOOR_PATTERNS.map((p) => {
+                  const active = doc.room.floor.pattern === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => setFloor({ pattern: p.id })}
+                      className={clsx(
+                        'group flex items-start gap-2.5 rounded-control border p-2 text-left transition-all',
+                        active
+                          ? 'border-sage-500 bg-sage-50/80 shadow-subtle dark:border-sage-500 dark:bg-sage-950/40'
+                          : 'border-ink-200 bg-white hover:border-ink-300 hover:bg-ink-50 dark:border-ink-800 dark:bg-ink-900 dark:hover:border-ink-700'
+                      )}
+                    >
+                      <div
+                        className={clsx(
+                          'flex h-8 w-8 shrink-0 items-center justify-center rounded transition-colors',
+                          active
+                            ? 'text-sage-700 dark:text-sage-300'
+                            : 'text-ink-400 group-hover:text-ink-600 dark:text-ink-500 dark:group-hover:text-ink-300'
+                        )}
+                      >
+                        <PatternThumbnail id={p.id} className="h-6 w-6" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <span
+                            className={clsx(
+                              'truncate text-[11px] font-semibold',
+                              active
+                                ? 'text-sage-900 dark:text-sage-50'
+                                : 'text-ink-800 dark:text-ink-200'
+                            )}
+                          >
+                            {p.name}
+                          </span>
+                          {active && (
+                            <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-sage-600 text-white">
+                              <Icon name="check" className="h-2.5 w-2.5" />
+                            </span>
+                          )}
+                        </div>
+                        <p className="line-clamp-2 text-[10px] leading-tight text-ink-400">
+                          {p.description}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Custom Floor Colour */}
+            <div className="flex flex-col gap-2">
+              <span className="text-[11px] font-medium text-ink-500 dark:text-ink-400">
+                Floor colour & tone
+              </span>
+              <ColorPicker
+                label="Floor colour"
+                presets={FLOOR_COLORS}
+                value={doc.room.floor.color}
+                onChange={(c) => setFloor({ color: c })}
+              />
+            </div>
           </div>
-        </div>
-
-        {/* Wall colour */}
-        <div className="flex flex-col gap-2">
-          <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
-            {selectedWallSide === 'all'
-              ? 'Wall colour'
-              : `${WALL_LABEL[selectedWallSide]} wall colour`}
-          </span>
-          <ColorPicker
-            label={
-              selectedWallSide === 'all'
-                ? 'Wall colour'
-                : `${WALL_LABEL[selectedWallSide]} wall colour`
-            }
-            presets={WALL_COLORS}
-            secondaryPresets={ACCENT_WALL_COLORS}
-            secondaryLabel="Designer Accents"
-            value={
-              selectedWallSide === 'all'
-                ? doc.room.walls.color
-                : (doc.room.wallOverrides?.[selectedWallSide]?.color ?? doc.room.walls.color)
-            }
-            onChange={(c) => setWallSideColor(selectedWallSide, c)}
-          />
-        </div>
-
-        {/* Flooring Pattern */}
-        <div className="flex flex-col gap-2">
-          <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
-            Floor pattern
-          </span>
-          <div role="radiogroup" aria-label="Floor pattern" className="grid grid-cols-2 gap-1.5">
-            {FLOOR_PATTERNS.map((p) => {
-              const active = doc.room.floor.pattern === p.id;
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  onClick={() => setFloor({ pattern: p.id })}
-                  className={clsx(
-                    'flex flex-col items-start gap-0.5 rounded-control border p-1.5 text-left text-[11px]',
-                    'transition-colors duration-150',
-                    active
-                      ? 'border-sage-500 bg-sage-50 text-sage-800 dark:bg-sage-900/30 dark:text-sage-100'
-                      : 'border-ink-200 text-ink-600 hover:border-ink-300 dark:border-ink-700 dark:text-ink-300'
-                  )}
-                >
-                  <span className="font-medium truncate w-full">{p.name}</span>
-                  <span className="text-[9px] text-ink-400 leading-tight truncate w-full">
-                    {p.description}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Floor colour */}
-        <div className="flex flex-col gap-2">
-          <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
-            Floor colour
-          </span>
-          <ColorPicker
-            label="Floor colour"
-            presets={FLOOR_COLORS}
-            value={doc.room.floor.color}
-            onChange={(c) => setFloor({ color: c })}
-          />
-        </div>
-
-        {/* Quick Flooring Presets */}
-        <div className="flex flex-col gap-1.5 pt-1">
-          <span className="text-[11px] font-medium text-ink-400">
-            Or choose a complete floor preset
-          </span>
-          <div role="radiogroup" aria-label="Flooring presets" className="grid grid-cols-2 gap-1.5">
-            {FLOOR_PRESETS.map((preset) => {
-              const active =
-                doc.room.floor.color.toLowerCase() === preset.color.toLowerCase() &&
-                doc.room.floor.pattern === preset.pattern;
-              return (
-                <button
-                  key={preset.name}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  onClick={() => setFloor({ color: preset.color, pattern: preset.pattern })}
-                  className={clsx(
-                    'flex items-center gap-2 rounded-control border px-2 py-1.5 text-left text-[11px]',
-                    'transition-colors duration-150',
-                    active
-                      ? 'border-sage-500 bg-sage-50 text-sage-800 dark:bg-sage-900/30 dark:text-sage-100'
-                      : 'border-ink-200 text-ink-600 hover:border-ink-300 dark:border-ink-700 dark:text-ink-300'
-                  )}
-                >
-                  <span
-                    className="h-3.5 w-3.5 shrink-0 rounded border border-black/10"
-                    style={{ backgroundColor: preset.color }}
-                  />
-                  <span className="truncate">{preset.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        )}
       </Section>
 
       <Section title="Guides & snapping" icon="magnet" defaultOpen={false}>
