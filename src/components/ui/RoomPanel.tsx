@@ -3,13 +3,20 @@ import clsx from 'clsx';
 import type { WallSide } from '@/types';
 import { useEditor } from '@/store/editorStore';
 import { useUI } from '@/store/uiStore';
-import { FLOOR_PRESETS, WALL_COLORS, WALL_PATTERNS } from '@/data/finishes';
+import {
+  ACCENT_WALL_COLORS,
+  FLOOR_COLORS,
+  FLOOR_PATTERNS,
+  FLOOR_PRESETS,
+  WALL_COLORS,
+  WALL_PATTERNS,
+} from '@/data/finishes';
 import { ROOM_LIMITS, occupiedFloorArea, totalCost } from '@/utils/placement';
 import { WALL_LABEL, WALL_SIDES, floorArea, wallLength } from '@/utils/roomGeometry';
 import { formatArea, formatLength, fromDisplay, parseLength, toDisplay, unitLabel } from '@/utils/units';
 import { formatCurrency } from '@/utils/exporters';
 import { Icon } from './Icon';
-import { Button, IconButton, NumberField, Section, Segmented, SwatchGrid, Switch } from './primitives';
+import { Button, ColorPicker, IconButton, NumberField, Section, Segmented, Switch } from './primitives';
 
 /**
  * Room inspector: dimensions, finishes, openings and a live summary.
@@ -470,9 +477,15 @@ export function RoomPanel() {
               ? 'Wall colour'
               : `${WALL_LABEL[selectedWallSide]} wall colour`}
           </span>
-          <SwatchGrid
-            label="Wall colour"
-            colors={WALL_COLORS.map((c) => ({ color: c.color, name: c.name }))}
+          <ColorPicker
+            label={
+              selectedWallSide === 'all'
+                ? 'Wall colour'
+                : `${WALL_LABEL[selectedWallSide]} wall colour`
+            }
+            presets={WALL_COLORS}
+            secondaryPresets={ACCENT_WALL_COLORS}
+            secondaryLabel="Designer Accents"
             value={
               selectedWallSide === 'all'
                 ? doc.room.walls.color
@@ -482,14 +495,61 @@ export function RoomPanel() {
           />
         </div>
 
+        {/* Flooring Pattern */}
         <div className="flex flex-col gap-2">
           <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
-            Flooring
+            Floor pattern
           </span>
-          <div role="radiogroup" aria-label="Flooring" className="grid grid-cols-2 gap-1.5">
+          <div role="radiogroup" aria-label="Floor pattern" className="grid grid-cols-2 gap-1.5">
+            {FLOOR_PATTERNS.map((p) => {
+              const active = doc.room.floor.pattern === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setFloor({ pattern: p.id })}
+                  className={clsx(
+                    'flex flex-col items-start gap-0.5 rounded-control border p-1.5 text-left text-[11px]',
+                    'transition-colors duration-150',
+                    active
+                      ? 'border-sage-500 bg-sage-50 text-sage-800 dark:bg-sage-900/30 dark:text-sage-100'
+                      : 'border-ink-200 text-ink-600 hover:border-ink-300 dark:border-ink-700 dark:text-ink-300'
+                  )}
+                >
+                  <span className="font-medium truncate w-full">{p.name}</span>
+                  <span className="text-[9px] text-ink-400 leading-tight truncate w-full">
+                    {p.description}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Floor colour */}
+        <div className="flex flex-col gap-2">
+          <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
+            Floor colour
+          </span>
+          <ColorPicker
+            label="Floor colour"
+            presets={FLOOR_COLORS}
+            value={doc.room.floor.color}
+            onChange={(c) => setFloor({ color: c })}
+          />
+        </div>
+
+        {/* Quick Flooring Presets */}
+        <div className="flex flex-col gap-1.5 pt-1">
+          <span className="text-[11px] font-medium text-ink-400">
+            Or choose a complete floor preset
+          </span>
+          <div role="radiogroup" aria-label="Flooring presets" className="grid grid-cols-2 gap-1.5">
             {FLOOR_PRESETS.map((preset) => {
               const active =
-                doc.room.floor.color === preset.color &&
+                doc.room.floor.color.toLowerCase() === preset.color.toLowerCase() &&
                 doc.room.floor.pattern === preset.pattern;
               return (
                 <button
@@ -507,7 +567,7 @@ export function RoomPanel() {
                   )}
                 >
                   <span
-                    className="h-4 w-4 shrink-0 rounded border border-black/10"
+                    className="h-3.5 w-3.5 shrink-0 rounded border border-black/10"
                     style={{ backgroundColor: preset.color }}
                   />
                   <span className="truncate">{preset.name}</span>

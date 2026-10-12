@@ -55,7 +55,9 @@ export type IconName =
   | 'distribute'
   | 'snap-face'
   | 'touch'
-  | 'joystick';
+  | 'joystick'
+  | 'palette'
+  | 'dropper';
 
 const PATHS: Record<IconName, string> = {
   plus: 'M12 5v14M5 12h14',
@@ -108,6 +110,8 @@ const PATHS: Record<IconName, string> = {
   'snap-face': 'M4 6h7v12H4zM11 6h9v12h-9z',
   touch: 'M12 4a2 2 0 0 0-2 2v7.5l-1.5-1.5a1.8 1.8 0 0 0-2.5 2.5l5 5a7 7 0 0 0 10-5V10a2 2 0 0 0-4 0v1a2 2 0 0 0-4 0V6a2 2 0 0 0-2-2z',
   joystick: 'M6 12a6 6 0 0 0 12 0v-2H6v2zM12 4v6M9 4h6',
+  palette: 'M12 21a9 9 0 1 1 0-18c4.97 0 9 3.58 9 8 0 2.2-1.34 4-3 4h-1.5c-.83 0-1.5.67-1.5 1.5 0 .42.17.81.45 1.1.28.29.45.68.45 1.1 0 1.27-1.74 2.3-3.9 2.3zM7.5 10.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm4-2a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm4 2a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
+  dropper: 'm14 7 3 3m-4-5-8.5 8.5a2.1 2.1 0 0 0-.6 1.5V18h3a2.1 2.1 0 0 0 1.5-.6L17 10l-4-5zM4 20h.01',
 };
 
 interface Props {

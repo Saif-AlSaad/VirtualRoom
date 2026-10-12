@@ -119,6 +119,44 @@ export const FLOOR_PRESETS: Array<{
   { name: 'Sage carpet', color: '#9aa88b', pattern: 'plain' },
 ];
 
+export const ACCENT_WALL_COLORS: Array<{ name: string; color: string }> = [
+  { name: 'Terracotta', color: '#b07d62' },
+  { name: 'Midnight Navy', color: '#2f4058' },
+  { name: 'Dusty Rose', color: '#c99e98' },
+  { name: 'Mustard Gold', color: '#c59b27' },
+  { name: 'Slate Teal', color: '#4a6b6c' },
+  { name: 'Warm Sand', color: '#d8c2a7' },
+];
+
+export interface FloorPatternInfo {
+  id: 'plain' | 'planks' | 'tiles' | 'herringbone';
+  name: string;
+  description: string;
+}
+
+export const FLOOR_PATTERNS: FloorPatternInfo[] = [
+  { id: 'planks', name: 'Planks', description: 'Hardwood timber boards' },
+  { id: 'herringbone', name: 'Herringbone', description: 'Chevron parquet pattern' },
+  { id: 'tiles', name: 'Tiles', description: 'Ceramic / stone grid tiles' },
+  { id: 'plain', name: 'Plain', description: 'Polished screed or carpet' },
+];
+
+/** Curated flooring colours for quick styling or custom pairing. */
+export const FLOOR_COLORS: Array<{ name: string; color: string }> = [
+  { name: 'Natural oak', color: '#c69c6d' },
+  { name: 'Rich walnut', color: '#8a5f42' },
+  { name: 'Pale ash', color: '#ddc9ab' },
+  { name: 'Honey beech', color: '#c9a578' },
+  { name: 'Espresso dark', color: '#4a3728' },
+  { name: 'Stone grey', color: '#cfcdc7' },
+  { name: 'Slate charcoal', color: '#8d9298' },
+  { name: 'Light concrete', color: '#c4c2bd' },
+  { name: 'Terracotta', color: '#b07d62' },
+  { name: 'Sage mist', color: '#9aa88b' },
+  { name: 'Calacatta cream', color: '#eae7de' },
+  { name: 'Ebony dark', color: '#2b2b2e' },
+];
+
 /** Free-form swatches offered alongside a finish, for quick recolouring. */
 export const QUICK_SWATCHES: string[] = [
   '#dad7cd',

@@ -335,5 +335,34 @@ describe('interior partition walls and lighting', () => {
     useEditor.getState().setWallSideColor('all', '#ffffff');
     expect(useEditor.getState().doc.room.walls.color).toBe('#ffffff');
   });
+
+  it('customizes floor color and pattern independently with undo/redo', () => {
+    const initialColor = useEditor.getState().doc.room.floor.color;
+    const initialPattern = useEditor.getState().doc.room.floor.pattern;
+
+    // Customize floor with arbitrary custom color
+    useEditor.getState().setFloor({ color: '#2a3b4c' });
+    expect(useEditor.getState().doc.room.floor.color).toBe('#2a3b4c');
+    expect(useEditor.getState().doc.room.floor.pattern).toBe(initialPattern);
+
+    // Customize floor pattern
+    useEditor.getState().setFloor({ pattern: 'herringbone' });
+    expect(useEditor.getState().doc.room.floor.color).toBe('#2a3b4c');
+    expect(useEditor.getState().doc.room.floor.pattern).toBe('herringbone');
+
+    // Undo pattern change
+    useEditor.getState().undo();
+    expect(useEditor.getState().doc.room.floor.pattern).toBe(initialPattern);
+    expect(useEditor.getState().doc.room.floor.color).toBe('#2a3b4c');
+
+    // Undo color change
+    useEditor.getState().undo();
+    expect(useEditor.getState().doc.room.floor.color).toBe(initialColor);
+
+    // Redo color change
+    useEditor.getState().redo();
+    expect(useEditor.getState().doc.room.floor.color).toBe('#2a3b4c');
+  });
 });
+
 

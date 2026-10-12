@@ -5,12 +5,12 @@ import type { PlacementIssue, WallPartition } from '@/types';
 import { useEditor } from '@/store/editorStore';
 import { useUI } from '@/store/uiStore';
 import { resolveCatalogItem } from '@/data/catalog';
-import { QUICK_SWATCHES, WALL_COLORS, WALL_PATTERNS } from '@/data/finishes';
+import { ACCENT_WALL_COLORS, QUICK_SWATCHES, WALL_COLORS, WALL_PATTERNS } from '@/data/finishes';
 import { evaluatePlacement, indexIssues, instanceSize } from '@/utils/placement';
 import { formatLength, fromDisplay, parseLength, toDisplay, unitLabel } from '@/utils/units';
 import { formatCurrency } from '@/utils/exporters';
 import { Icon } from './Icon';
-import { Button, EmptyState, IconButton, NumberField, Section, SwatchGrid, Switch, Tooltip } from './primitives';
+import { Button, ColorPicker, EmptyState, IconButton, NumberField, Section, Switch, Tooltip } from './primitives';
 import { RoomPanel } from './RoomPanel';
 
 /**
@@ -255,9 +255,11 @@ function PartitionInspector({ partition }: { partition: WallPartition }) {
           <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
             Paint colour
           </span>
-          <SwatchGrid
+          <ColorPicker
             label="Wall paint"
-            colors={WALL_COLORS}
+            presets={WALL_COLORS}
+            secondaryPresets={ACCENT_WALL_COLORS}
+            secondaryLabel="Designer Accents"
             value={finish.color}
             onChange={(c) => commit({ finish: { ...finish, color: c } })}
           />
@@ -684,10 +686,10 @@ function SelectionInspector() {
               </button>
             )}
           </div>
-          <SwatchGrid
+          <ColorPicker
             label="Custom colour"
-            colors={QUICK_SWATCHES.map((c) => ({ color: c, name: c }))}
-            value={instance.colorOverride ?? ''}
+            presets={QUICK_SWATCHES.map((c) => ({ color: c, name: c }))}
+            value={instance.colorOverride ?? '#dad7cd'}
             onChange={(color) => commitPatch({ colorOverride: color })}
           />
         </div>

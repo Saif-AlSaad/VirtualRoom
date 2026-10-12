@@ -602,3 +602,12 @@ export function EmptyState({
 export function Skeleton({ className }: { className?: string }) {
   return <div className={clsx('skeleton rounded-control', className)} aria-hidden="true" />;
 }
+
+// ── Color Picker ──────────────────────────────────────────────────────────
+export {
+  ColorPicker,
+  type ColorOption,
+  type ColorPickerProps,
+} from './ColorPicker';
+
+
