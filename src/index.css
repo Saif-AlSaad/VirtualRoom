@@ -11,6 +11,39 @@
     --text: 26 26 26;
     --border: 228 228 231;
     --accent: 88 129 87;
+
+    /* Studio Light Theme tokens */
+    --studio-bg: #F4F5F4;
+    --studio-bg-rgb: 244 245 244;
+    --studio-sidebar: #FFFFFF;
+    --studio-sidebar-rgb: 255 255 255;
+    --studio-card: #FFFFFF;
+    --studio-card-rgb: 255 255 255;
+    --studio-elevated: #ECEEEC;
+    --studio-elevated-rgb: 236 238 236;
+    --studio-hover: #E3E6E3;
+    --studio-hover-rgb: 227 230 227;
+    --studio-accent: #3A5A40;
+    --studio-accent-rgb: 58 90 64;
+    --studio-accent-hover: #26382F;
+    --studio-accent-hover-rgb: 38 56 47;
+    --studio-accent-muted: #D5DDD5;
+    --studio-accent-muted-rgb: 213 221 213;
+    --studio-text: #191D1A;
+    --studio-text-rgb: 25 29 26;
+    --studio-text-muted: #5C665E;
+    --studio-text-muted-rgb: 92 102 94;
+    --studio-text-dim: #849086;
+    --studio-text-dim-rgb: 132 144 134;
+    --studio-border: #DDE2DE;
+    --studio-border-rgb: 221 226 222;
+    --studio-divider: #E8ECE8;
+    --studio-divider-rgb: 232 236 232;
+    --studio-danger: #EF4444;
+    --studio-danger-rgb: 239 68 68;
+    --blueprint-canvas: #EAEFEA;
+    --blueprint-interior: #FFFFFF;
+    --blueprint-grid: #D8E0D8;
   }
 
   .dark {
@@ -21,6 +54,39 @@
     --text: 244 243 238;
     --border: 63 63 70;
     --accent: 163 177 138;
+
+    /* Studio Dark Theme tokens (Premium Dark Studio) */
+    --studio-bg: #101211;
+    --studio-bg-rgb: 16 18 17;
+    --studio-sidebar: #141815;
+    --studio-sidebar-rgb: 20 24 21;
+    --studio-card: #191D1A;
+    --studio-card-rgb: 25 29 26;
+    --studio-elevated: #222823;
+    --studio-elevated-rgb: 34 40 35;
+    --studio-hover: #292F2A;
+    --studio-hover-rgb: 41 47 42;
+    --studio-accent: #83B493;
+    --studio-accent-rgb: 131 180 147;
+    --studio-accent-hover: #9BC8A8;
+    --studio-accent-hover-rgb: 155 200 168;
+    --studio-accent-muted: #344C3B;
+    --studio-accent-muted-rgb: 52 76 59;
+    --studio-text: #F3F5F2;
+    --studio-text-rgb: 243 245 242;
+    --studio-text-muted: #A4AEA6;
+    --studio-text-muted-rgb: 164 174 166;
+    --studio-text-dim: #778179;
+    --studio-text-dim-rgb: 119 129 121;
+    --studio-border: #2C332E;
+    --studio-border-rgb: 44 51 46;
+    --studio-divider: #252B26;
+    --studio-divider-rgb: 37 43 38;
+    --studio-danger: #E57373;
+    --studio-danger-rgb: 229 115 115;
+    --blueprint-canvas: #141815;
+    --blueprint-interior: #191D1A;
+    --blueprint-grid: #252B26;
   }
 
   html,
@@ -128,24 +194,4 @@
     -webkit-user-drag: none;
     user-select: none;
   }
-
-  /* Premium Dark Studio explicit classes */
-  .bg-studio-bg { background-color: #101211; }
-  .bg-studio-sidebar { background-color: #141815; }
-  .bg-studio-card { background-color: #191D1A; }
-  .bg-studio-elevated { background-color: #222823; }
-  .bg-studio-hover { background-color: #292F2A; }
-  .bg-studio-accent { background-color: #83B493; }
-  .bg-studio-accent-muted { background-color: #344C3B; }
-  
-  .text-studio-text { color: #F3F5F2; }
-  .text-studio-text-muted { color: #A4AEA6; }
-  .text-studio-text-dim { color: #778179; }
-  .text-studio-accent { color: #83B493; }
-  .text-studio-bg { color: #101211; }
-  .text-studio-danger { color: #E57373; }
-  
-  .border-studio-border { border-color: #2C332E; }
-  .border-studio-divider { border-color: #252B26; }
-  .border-studio-accent { border-color: #83B493; }
 }

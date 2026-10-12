@@ -15,6 +15,19 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23344e41'/%3E%3Cpath d='M7 20V12l9-5 9 5v8' stroke='%23dad7cd' stroke-width='2.2' fill='none' stroke-linejoin='round'/%3E%3Crect x='11' y='17' width='10' height='6' rx='1.5' fill='%23a3b18a'/%3E%3C/svg%3E"
     />
+    <script>
+      (function() {
+        try {
+          var raw = localStorage.getItem('roomcraft:v1:settings');
+          var theme = raw ? JSON.parse(raw).theme : 'dark';
+          var isDark = theme === 'system'
+            ? window.matchMedia('(prefers-color-scheme: dark)').matches
+            : (theme ? theme === 'dark' : true);
+          document.documentElement.classList.toggle('dark', isDark);
+          document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+        } catch (_) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

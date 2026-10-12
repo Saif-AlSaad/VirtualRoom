@@ -1,4 +1,12 @@
-/** @type {import('tailwindcss').Config} */
+function withOpacity(variableName) {
+  return ({ opacityValue }) => {
+    if (opacityValue !== undefined) {
+      return `rgb(var(${variableName}-rgb) / ${opacityValue})`;
+    }
+    return `var(${variableName})`;
+  };
+}
+
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   darkMode: 'class',
@@ -34,22 +42,22 @@ export default {
         danger: '#ef4444',
         warn: '#f59e0b',
         ok: '#10b981',
-        // Premium Dark Studio palette
+        // Premium Studio palette (responsive to dark and light modes via CSS variables)
         studio: {
-          bg: '#101211',
-          sidebar: '#141815',
-          card: '#191D1A',
-          elevated: '#222823',
-          hover: '#292F2A',
-          accent: '#83B493',
-          'accent-hover': '#9BC8A8',
-          'accent-muted': '#344C3B',
-          text: '#F3F5F2',
-          'text-muted': '#A4AEA6',
-          'text-dim': '#778179',
-          border: '#2C332E',
-          divider: '#252B26',
-          danger: '#E57373',
+          bg: withOpacity('--studio-bg'),
+          sidebar: withOpacity('--studio-sidebar'),
+          card: withOpacity('--studio-card'),
+          elevated: withOpacity('--studio-elevated'),
+          hover: withOpacity('--studio-hover'),
+          accent: withOpacity('--studio-accent'),
+          'accent-hover': withOpacity('--studio-accent-hover'),
+          'accent-muted': withOpacity('--studio-accent-muted'),
+          text: withOpacity('--studio-text'),
+          'text-muted': withOpacity('--studio-text-muted'),
+          'text-dim': withOpacity('--studio-text-dim'),
+          border: withOpacity('--studio-border'),
+          divider: withOpacity('--studio-divider'),
+          danger: withOpacity('--studio-danger'),
         },
       },
       fontFamily: {

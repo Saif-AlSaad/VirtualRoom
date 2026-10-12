@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { Opening, Project, Unit, WallPartition } from '@/types';
 import { useProjects } from '@/store/projectsStore';
 import { useEditor } from '@/store/editorStore';
-import { useUI } from '@/store/uiStore';
+import { useUI, resolveTheme } from '@/store/uiStore';
 import { CATALOG, ROOM_TEMPLATES } from '@/data/catalog';
 import { createProject, parseProjectJSON } from '@/utils/schema';
 import {
@@ -106,7 +106,7 @@ function FloorplanBlueprint({
           <path
             d="M 10 0 L 0 0 0 10"
             fill="none"
-            stroke="#252B26"
+            stroke="var(--blueprint-grid)"
             strokeWidth="0.6"
             strokeDasharray="1 2"
           />
@@ -114,7 +114,7 @@ function FloorplanBlueprint({
       </defs>
 
       {/* Outer ambient canvas */}
-      <rect x="0" y="0" width={vbW} height={vbH} fill="#141815" />
+      <rect x="0" y="0" width={vbW} height={vbH} fill="var(--blueprint-canvas)" />
 
       {/* Room interior surface */}
       <rect
@@ -122,7 +122,7 @@ function FloorplanBlueprint({
         y={ry}
         width={rw}
         height={rh}
-        fill="#191D1A"
+        fill="var(--blueprint-interior)"
         rx="2"
       />
       <rect
@@ -142,7 +142,7 @@ function FloorplanBlueprint({
         width={rw + 3}
         height={rh + 3}
         fill="none"
-        stroke="#2C332E"
+        stroke="var(--studio-border)"
         strokeWidth="3.2"
         rx="3"
       />
@@ -152,14 +152,14 @@ function FloorplanBlueprint({
         width={rw}
         height={rh}
         fill="none"
-        stroke="#83B493"
+        stroke="var(--studio-accent)"
         strokeWidth="1.2"
         rx="2"
         opacity="0.85"
       />
 
       {/* Architectural corner crosshair ticks */}
-      <g stroke="#83B493" strokeWidth="0.75" opacity="0.5">
+      <g stroke="var(--studio-accent)" strokeWidth="0.75" opacity="0.5">
         <line x1={rx - 4} y1={ry} x2={rx + 4} y2={ry} />
         <line x1={rx} y1={ry - 4} x2={rx} y2={ry + 4} />
         <line x1={rx + rw - 4} y1={ry} x2={rx + rw + 4} y2={ry} />
@@ -186,8 +186,8 @@ function FloorplanBlueprint({
             height={pThick}
             transform={`rotate(${rot} ${px} ${py})`}
             rx="1"
-            fill="#2C332E"
-            stroke="#83B493"
+            fill="var(--studio-border)"
+            stroke="var(--studio-accent)"
             strokeWidth="0.9"
             opacity="0.9"
           />
@@ -217,7 +217,7 @@ function FloorplanBlueprint({
         if (op.kind === 'window') {
           const isHoriz = op.wall === 'north' || op.wall === 'south';
           return (
-            <g key={`op-${i}`} stroke="#83B493" strokeWidth="1.2">
+            <g key={`op-${i}`} stroke="var(--studio-accent)" strokeWidth="1.2">
               <line
                 x1={isHoriz ? ox - opW / 2 : ox - 1.5}
                 y1={isHoriz ? oy - 1.5 : oy - opW / 2}
@@ -242,7 +242,7 @@ function FloorplanBlueprint({
               y1={oy}
               x2={ox + (op.wall === 'west' ? opW : op.wall === 'east' ? -opW : 0)}
               y2={oy + (op.wall === 'north' ? opW : op.wall === 'south' ? -opW : 0)}
-              stroke="#A4AEA6"
+              stroke="var(--studio-text-muted)"
               strokeWidth="1.2"
             />
           </g>
@@ -270,8 +270,8 @@ function FloorplanBlueprint({
                 height={fd}
                 transform={`rotate(${rot} ${ix} ${iy})`}
                 rx="1.5"
-                fill="rgba(131, 180, 147, 0.08)"
-                stroke="#83B493"
+                fill="rgba(var(--studio-accent-rgb), 0.08)"
+                stroke="var(--studio-accent)"
                 strokeWidth="0.7"
                 strokeDasharray="2 1.5"
                 opacity="0.85"
@@ -287,8 +287,8 @@ function FloorplanBlueprint({
                 width={fw}
                 height={fd}
                 rx="1.5"
-                fill="#222823"
-                stroke="#83B493"
+                fill="var(--studio-elevated)"
+                stroke="var(--studio-accent)"
                 strokeWidth="0.85"
                 opacity="0.95"
               />
@@ -299,7 +299,7 @@ function FloorplanBlueprint({
                   y1={iy - fd / 2 + 3}
                   x2={ix + fw / 2 - 2}
                   y2={iy - fd / 2 + 3}
-                  stroke="#83B493"
+                  stroke="var(--studio-accent)"
                   strokeWidth="0.5"
                   opacity="0.6"
                 />
@@ -325,8 +325,8 @@ function FloorplanBlueprint({
               width={itemW}
               height={itemH}
               rx="1.5"
-              fill="#222823"
-              stroke="#83B493"
+              fill="var(--studio-elevated)"
+              stroke="var(--studio-accent)"
               strokeWidth="0.8"
               opacity="0.85"
             />
@@ -334,7 +334,7 @@ function FloorplanBlueprint({
         })
       ) : (
         // Clean empty room architectural indicator
-        <g opacity="0.4" stroke="#83B493" strokeWidth="0.75">
+        <g opacity="0.4" stroke="var(--studio-accent)" strokeWidth="0.75">
           <line x1={cx - 5} y1={cy} x2={cx + 5} y2={cy} />
           <line x1={cx} y1={cy - 5} x2={cx} y2={cy + 5} />
           <circle cx={cx} cy={cy} r="2.5" fill="none" strokeDasharray="1 1" />
@@ -346,7 +346,8 @@ function FloorplanBlueprint({
         x={cx}
         y={ry + rh - 4}
         textAnchor="middle"
-        className="fill-studio-text-dim text-[7.5px] font-mono tracking-wider"
+        fill="var(--studio-text-dim)"
+        className="text-[7.5px] font-mono tracking-wider"
         opacity="0.75"
       >
         {formatLengthShort(width, unit as Unit)} × {formatLengthShort(length, unit as Unit)}
@@ -961,6 +962,7 @@ function TopBar({
 }) {
   const theme = useUI((s) => s.theme);
   const setTheme = useUI((s) => s.setTheme);
+  const isDark = resolveTheme(theme) === 'dark';
 
   return (
     <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-studio-border bg-studio-bg/90 px-6 backdrop-blur-md md:px-8">
@@ -986,10 +988,10 @@ function TopBar({
       <div className="flex items-center gap-2.5">
         <IconButton
           size="sm"
-          icon={theme === 'dark' ? 'moon' : 'sun'}
-          label="Toggle theme"
+          icon={isDark ? 'sun' : 'moon'}
+          label={isDark ? 'Switch to light interface' : 'Switch to dark interface'}
           variant="secondary"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          onClick={() => setTheme(isDark ? 'light' : 'dark')}
         />
 
         {/* Secondary Button — Import */}
@@ -1035,8 +1037,8 @@ function WelcomeHero({
       >
         <defs>
           <pattern id="hero-architectural-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-            <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#83B493" strokeWidth="0.8" />
-            <circle cx="0" cy="0" r="1.5" fill="#83B493" />
+            <path d="M 24 0 L 0 0 0 24" fill="none" stroke="var(--studio-accent)" strokeWidth="0.8" />
+            <circle cx="0" cy="0" r="1.5" fill="var(--studio-accent)" />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#hero-architectural-grid)" />
@@ -1046,7 +1048,7 @@ function WelcomeHero({
       <div
         className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full"
         style={{
-          background: 'radial-gradient(circle, rgba(131, 180, 147, 0.14) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(var(--studio-accent-rgb), 0.14) 0%, transparent 70%)',
         }}
       />
 
