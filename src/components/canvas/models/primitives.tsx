@@ -167,17 +167,21 @@ export function Cushion({
   color,
   roughness = 0.9,
   radius = 0.05,
+  rotX = 0,
+  rotY = 0,
 }: {
   at: [number, number, number];
   size: [number, number, number];
   color: string;
   roughness?: number;
   radius?: number;
+  rotX?: number;
+  rotY?: number;
 }) {
   const [w, d, h] = size;
   const geometry = useMemo(() => cushionGeometry(w, d, h, radius), [w, d, h, radius]);
   return (
-    <mesh position={at} geometry={geometry} castShadow receiveShadow>
+    <mesh position={at} rotation={[rotX, rotY, 0]} geometry={geometry} castShadow receiveShadow>
       <meshStandardMaterial color={color} roughness={roughness} metalness={0} />
     </mesh>
   );
@@ -282,6 +286,13 @@ export function Panels({
       items.push(
         <group key={i}>
           <Slab at={[cx, y, z]} size={[each, depth, h - gap * 2]} color={color} />
+          {each > 0.18 && (
+            <Slab
+              at={[cx, y, z + 0.003]}
+              size={[each - 0.07, depth + 0.002, Math.max(0.1, h - gap * 2 - 0.12)]}
+              color={shade(color, -0.05)}
+            />
+          )}
           {handleColor && (
             <Slab
               at={[

@@ -10,6 +10,7 @@ import { formatCurrency } from '@/utils/exporters';
 import { Icon } from './Icon';
 import { EmptyState, Skeleton, Tooltip } from './primitives';
 import { CustomModelUpload } from './CustomModelUpload';
+import { FurnitureThumbnail } from './FurnitureThumbnail';
 
 /**
  * Furniture catalog sidebar.
@@ -26,41 +27,6 @@ import { CustomModelUpload } from './CustomModelUpload';
  */
 
 const DRAG_MIME = 'application/x-roomcraft-catalog-id';
-
-function ThumbnailShape({ item }: { item: CatalogItem }) {
-  // A 2D plan silhouette of the item's real footprint. It communicates the one
-  // thing that matters when choosing furniture for a room — proportion.
-  const ratio = item.size.w / item.size.d;
-  const maxW = 62;
-  const maxH = 46;
-  const w = ratio >= maxW / maxH ? maxW : maxH * ratio;
-  const h = ratio >= maxW / maxH ? maxW / ratio : maxH;
-  const color = item.finishes[0]?.color ?? '#a3b18a';
-
-  return (
-    <svg viewBox="0 0 80 60" className="h-full w-full" aria-hidden="true">
-      <rect x="0" y="0" width="80" height="60" rx="6" className="fill-sage-50 dark:fill-ink-800" />
-      <rect
-        x={40 - w / 2}
-        y={30 - h / 2}
-        width={w}
-        height={h}
-        rx={Math.min(4, Math.min(w, h) / 4)}
-        fill={color}
-        opacity="0.9"
-      />
-      <rect
-        x={40 - w / 2}
-        y={30 - h / 2}
-        width={w}
-        height={Math.max(3, h * 0.22)}
-        rx="2"
-        fill="#344e41"
-        opacity="0.22"
-      />
-    </svg>
-  );
-}
 
 function CatalogCard({ item }: { item: CatalogItem }) {
   const addFurniture = useEditor((s) => s.addFurniture);
@@ -105,7 +71,7 @@ function CatalogCard({ item }: { item: CatalogItem }) {
         )}
       >
         <div className="aspect-square w-full p-2">
-          <ThumbnailShape item={item} />
+          <FurnitureThumbnail item={item} />
         </div>
         <div className="flex flex-col gap-0.5 px-2 pb-2">
           <span className="truncate text-caption font-medium text-ink-800 dark:text-sage-50">

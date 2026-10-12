@@ -48,15 +48,35 @@ const upholstered = (p: ModelProps, cushions: number): JSX.Element => {
 
   return (
     <group>
+      {/* Tapered round legs */}
       <Legs w={w} d={d} height={legH} color={legColor} thickness={0.045} inset={0.05} round />
-      {/* Plinth the cushions sit on */}
+      {/* Metallic brass ferrules on leg feet */}
+      {[
+        [w / 2 - 0.05 - 0.022, 0.015, d / 2 - 0.05 - 0.022],
+        [-w / 2 + 0.05 + 0.022, 0.015, d / 2 - 0.05 - 0.022],
+        [w / 2 - 0.05 - 0.022, 0.015, -d / 2 + 0.05 + 0.022],
+        [-w / 2 + 0.05 + 0.022, 0.015, -d / 2 + 0.05 + 0.022],
+      ].map((pos, idx) => (
+        <Cyl
+          key={`ferrule-${idx}`}
+          at={pos as [number, number, number]}
+          radius={0.024}
+          height={0.03}
+          color="#c59b27"
+          metalness={0.85}
+          roughness={0.25}
+          segments={10}
+        />
+      ))}
+
+      {/* Plinth base the cushions sit on */}
       <Slab
         at={[0, legH + (seatTop - legH) / 2, 0]}
         size={[w, d, seatTop - legH]}
         color={frame}
         roughness={roughness}
       />
-      {/* Back rest, tilted very slightly for a softer silhouette */}
+      {/* Back rest, tilted slightly for ergonomic silhouette */}
       <Slab
         at={[0, seatTop + (h - seatTop) / 2, -d / 2 + backD / 2]}
         size={[w, backD, h - seatTop]}
@@ -64,20 +84,35 @@ const upholstered = (p: ModelProps, cushions: number): JSX.Element => {
         roughness={roughness}
         rotX={-0.04}
       />
-      {/* Arms */}
+
+      {/* Arms core slabs */}
       <Slab
-        at={[w / 2 - arm / 2, legH + (h * 0.8 - legH) / 2, 0]}
-        size={[arm, d, h * 0.8 - legH]}
+        at={[w / 2 - arm / 2, legH + (h * 0.78 - legH) / 2, 0]}
+        size={[arm, d, h * 0.78 - legH]}
         color={color}
         roughness={roughness}
       />
       <Slab
-        at={[-w / 2 + arm / 2, legH + (h * 0.8 - legH) / 2, 0]}
-        size={[arm, d, h * 0.8 - legH]}
+        at={[-w / 2 + arm / 2, legH + (h * 0.78 - legH) / 2, 0]}
+        size={[arm, d, h * 0.78 - legH]}
         color={color}
         roughness={roughness}
       />
-      {/* Seat cushions */}
+      {/* Padded upholstered armrest toppers */}
+      <Cushion
+        at={[w / 2 - arm / 2, h * 0.78 + 0.01, 0]}
+        size={[arm + 0.012, d - 0.02, 0.04]}
+        color={shade(color, 0.03)}
+        radius={0.025}
+      />
+      <Cushion
+        at={[-w / 2 + arm / 2, h * 0.78 + 0.01, 0]}
+        size={[arm + 0.012, d - 0.02, 0.04]}
+        color={shade(color, 0.03)}
+        radius={0.025}
+      />
+
+      {/* Seat cushions with piping radius */}
       {Array.from({ length: cushions }, (_, i) => (
         <Cushion
           key={i}
@@ -101,6 +136,34 @@ const upholstered = (p: ModelProps, cushions: number): JSX.Element => {
           radius={0.04}
         />
       ))}
+
+      {/* Accent Throw Pillows */}
+      {cushions >= 2 ? (
+        <>
+          <Cushion
+            at={[w / 2 - arm - 0.08, seatTop + 0.14, -d * 0.06]}
+            size={[0.24, 0.1, 0.24]}
+            color={shade(color, 0.14)}
+            radius={0.04}
+            rotY={-0.35}
+          />
+          <Cushion
+            at={[-w / 2 + arm + 0.08, seatTop + 0.14, -d * 0.06]}
+            size={[0.24, 0.1, 0.24]}
+            color={shade(color, 0.14)}
+            radius={0.04}
+            rotY={0.35}
+          />
+        </>
+      ) : (
+        /* Armchair lumbar cushion */
+        <Cushion
+          at={[0, seatTop + 0.08, -d / 2 + backD + 0.06]}
+          size={[seatW * 0.72, 0.09, 0.18]}
+          color={shade(color, 0.1)}
+          radius={0.035}
+        />
+      )}
     </group>
   );
 };
@@ -301,7 +364,35 @@ export const MODEL_BUILDERS: Record<ModelKind, Builder> = {
   },
 
   // ── Tables ────────────────────────────────────────────────────────────
-  coffeeTable: (p) => tableTop(p, false),
+  coffeeTable: (p) => {
+    const { w, d, h, color, roughness, metalness } = p;
+    const topH = 0.032;
+    const shelfH = 0.018;
+    const shelfY = h * 0.32;
+    const legColor = metalness > 0.4 ? neutral(color, 0.24) : shade(color, -0.16);
+
+    return (
+      <group>
+        {/* Tabletop with chamfered edge */}
+        <Slab at={[0, h - topH / 2, 0]} size={[w, d, topH]} color={color} roughness={roughness} metalness={metalness} />
+        {/* Under-top apron frame */}
+        <Slab at={[0, h - topH - 0.02, 0]} size={[w - 0.1, d - 0.1, 0.03]} color={shade(color, -0.12)} roughness={roughness} />
+        {/* Lower slatted tier shelf for magazines/books */}
+        <Slab at={[0, shelfY, 0]} size={[w - 0.12, d - 0.12, shelfH]} color={shade(color, -0.06)} roughness={roughness} />
+        {/* 4 round legs with brass ferrules */}
+        <Legs w={w} d={d} height={h - topH} color={legColor} thickness={0.045} inset={0.05} round />
+        {/* Golden brass feet */}
+        {([
+          [w / 2 - 0.05 - 0.022, 0.015, d / 2 - 0.05 - 0.022],
+          [-w / 2 + 0.05 + 0.022, 0.015, d / 2 - 0.05 - 0.022],
+          [w / 2 - 0.05 - 0.022, 0.015, -d / 2 + 0.05 + 0.022],
+          [-w / 2 + 0.05 + 0.022, 0.015, -d / 2 + 0.05 + 0.022],
+        ] as [number, number, number][]).map((pos, idx) => (
+          <Cyl key={idx} at={pos} radius={0.024} height={0.03} color="#c59b27" metalness={0.85} roughness={0.25} segments={10} />
+        ))}
+      </group>
+    );
+  },
   diningTable: (p) => tableTop(p, true),
   patioTable: (p) => tableTop(p, true),
 
@@ -358,21 +449,40 @@ export const MODEL_BUILDERS: Record<ModelKind, Builder> = {
   },
 
   dresser: (p) => {
-    // Dressing table: a low chest with a mirror above it.
-    const { w, d, h, color, roughness } = p;
+    // Dressing table: vanity desk with arched brass mirror and drawer pulls
+    const { w, d, h } = p;
     const deskH = Math.min(0.78, h * 0.55);
     const mirrorH = h - deskH;
     return (
       <group>
         {carcass({ ...p, h: deskH }, { doors: 3, horizontal: true, plinth: 0.07 })}
-        <Slab at={[0, deskH + mirrorH / 2, -d / 2 + 0.03]} size={[w * 0.7, 0.03, mirrorH * 0.94]} color={shade(color, -0.1)} roughness={roughness} />
+        {/* Arched mirror frame in warm brushed brass */}
+        <Slab
+          at={[0, deskH + mirrorH / 2, -d / 2 + 0.03]}
+          size={[w * 0.72, 0.035, mirrorH * 0.96]}
+          color="#b08d4f"
+          roughness={0.25}
+          metalness={0.8}
+        />
+        {/* Reflective mirror surface */}
         <Slab
           at={[0, deskH + mirrorH / 2, -d / 2 + 0.05]}
-          size={[w * 0.62, 0.01, mirrorH * 0.86]}
-          color="#cfd8dc"
-          roughness={0.06}
-          metalness={0.85}
+          size={[w * 0.64, 0.01, mirrorH * 0.88]}
+          color="#d6e4ec"
+          roughness={0.04}
+          metalness={0.92}
         />
+        {/* Sleek drawer pull bars in brass */}
+        {[-1, 0, 1].map((idx) => (
+          <Slab
+            key={idx}
+            at={[0, deskH * 0.28 + (idx + 1) * (deskH * 0.2), d / 2 + 0.018]}
+            size={[w * 0.26, 0.016, 0.016]}
+            color="#b08d4f"
+            roughness={0.25}
+            metalness={0.8}
+          />
+        ))}
       </group>
     );
   },
@@ -384,16 +494,24 @@ export const MODEL_BUILDERS: Record<ModelKind, Builder> = {
     const mattressH = h * 0.4;
     const headH = h * 1.25;
     const wood = shade(neutral(color, 0.3), 0);
+    const isDouble = w > 1.1;
+
     return (
       <group>
+        {/* Corner wooden bed posts/legs */}
+        <Legs w={w + 0.02} d={d + 0.02} height={frameH} color={shade(wood, -0.15)} thickness={0.06} inset={0.02} />
+        {/* Solid perimeter bed frame */}
         <Slab at={[0, frameH / 2, 0]} size={[w, d, frameH]} color={wood} roughness={0.6} />
+
+        {/* Deep comfortable mattress with fitted sheet */}
         <Cushion
           at={[0, frameH, 0]}
           size={[w - 0.05, d - 0.05, mattressH]}
-          color="#f3f1ea"
+          color="#f5f3ec"
           radius={0.05}
         />
-        {/* Duvet covering the lower two thirds */}
+
+        {/* Layered duvet covering lower two thirds */}
         <Cushion
           at={[0, frameH + mattressH * 0.92, d * 0.14]}
           size={[w - 0.02, d * 0.66, 0.09]}
@@ -401,16 +519,48 @@ export const MODEL_BUILDERS: Record<ModelKind, Builder> = {
           roughness={roughness}
           radius={0.05}
         />
-        {/* Headboard at local −Z: the back of the bed */}
+
+        {/* Turned-down sheet fold showing contrasting crisp white linen */}
+        <Cushion
+          at={[0, frameH + mattressH * 0.95, -d * 0.18]}
+          size={[w - 0.03, 0.14, 0.05]}
+          color="#fcfbf7"
+          radius={0.025}
+        />
+
+        {/* Upholstered headboard with vertical channel stitching */}
         <Slab at={[0, headH / 2, -d / 2 - 0.03]} size={[w + 0.06, 0.07, headH]} color={color} roughness={roughness} />
-        {/* Pillows */}
-        {(w > 1.1 ? [-1, 1] : [0]).map((s, i) => (
+        {/* Vertical channel ribs on headboard */}
+        {[-0.35, -0.18, 0, 0.18, 0.35].map((xf, i) => (
+          <Slab
+            key={`rib-${i}`}
+            at={[w * xf, headH / 2, -d / 2 + 0.008]}
+            size={[0.016, 0.012, headH * 0.88]}
+            color={shade(color, -0.08)}
+            roughness={roughness}
+          />
+        ))}
+
+        {/* Sleeping pillows */}
+        {(isDouble ? [-1, 1] : [0]).map((s, i) => (
           <Cushion
             key={i}
-            at={[s * (w * 0.24), frameH + mattressH + 0.03, -d / 2 + 0.24]}
-            size={[w > 1.1 ? w * 0.42 : w * 0.7, 0.32, 0.1]}
+            at={[s * (w * 0.24), frameH + mattressH + 0.03, -d / 2 + 0.26]}
+            size={[isDouble ? w * 0.42 : w * 0.7, 0.32, 0.11]}
             color="#fbfaf6"
             radius={0.06}
+          />
+        ))}
+
+        {/* Decorative accent throw pillows propped in front */}
+        {isDouble && [-1, 1].map((s, i) => (
+          <Cushion
+            key={`dec-${i}`}
+            at={[s * (w * 0.22), frameH + mattressH + 0.07, -d / 2 + 0.42]}
+            size={[w * 0.28, 0.16, 0.1]}
+            color={shade(color, 0.12)}
+            radius={0.04}
+            rotX={-0.15}
           />
         ))}
       </group>
