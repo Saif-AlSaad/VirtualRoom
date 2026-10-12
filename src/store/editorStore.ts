@@ -65,6 +65,14 @@ function cloneDoc(doc: DocumentState): DocumentState {
     room: {
       dimensions: { ...doc.room.dimensions },
       walls: { ...doc.room.walls },
+      wallOverrides: doc.room.wallOverrides
+        ? Object.fromEntries(
+            Object.entries(doc.room.wallOverrides).map(([k, v]) => [
+              k,
+              v ? { ...v } : undefined,
+            ])
+          )
+        : undefined,
       floor: { ...doc.room.floor },
       openings: doc.room.openings.map((o) => ({ ...o })),
       partitions: (doc.room.partitions ?? []).map((p) => ({
@@ -132,6 +140,9 @@ export interface EditorState {
   resizeRoomLive: (dims: Partial<RoomDimensions>) => void;
   setWallColor: (color: string) => void;
   setWallPattern: (pattern: WallPattern) => void;
+  setWallSideColor: (side: WallSide | 'all', color: string) => void;
+  setWallSidePattern: (side: WallSide | 'all', pattern: WallPattern) => void;
+  resetWallSide: (side: WallSide) => void;
   setFloor: (floor: { color?: string; pattern?: DocumentState['room']['floor']['pattern'] }) => void;
 
   addOpening: (kind: OpeningKind, wall: WallSide) => string;
@@ -420,6 +431,45 @@ export const useEditor = create<EditorState>((set, get) => ({
     get().commit('Change wall finish', (d) => {
       d.room.walls.pattern = pattern;
     }),
+
+  setWallSideColor: (side, color) => {
+    if (side === 'all') {
+      get().commit('Change wall colour', (d) => {
+        d.room.walls.color = color;
+      });
+      return;
+    }
+    get().commit(`Change ${side} wall colour`, (d) => {
+      d.room.wallOverrides = d.room.wallOverrides ?? {};
+      const base = d.room.wallOverrides[side] ?? { ...d.room.walls };
+      d.room.wallOverrides[side] = { ...base, color };
+    });
+  },
+
+  setWallSidePattern: (side, pattern) => {
+    if (side === 'all') {
+      get().commit('Change wall finish', (d) => {
+        d.room.walls.pattern = pattern;
+      });
+      return;
+    }
+    get().commit(`Change ${side} wall finish`, (d) => {
+      d.room.wallOverrides = d.room.wallOverrides ?? {};
+      const base = d.room.wallOverrides[side] ?? { ...d.room.walls };
+      d.room.wallOverrides[side] = { ...base, pattern };
+    });
+  },
+
+  resetWallSide: (side) => {
+    get().commit(`Reset ${side} wall to room default`, (d) => {
+      if (d.room.wallOverrides) {
+        delete d.room.wallOverrides[side];
+        if (Object.keys(d.room.wallOverrides).length === 0) {
+          d.room.wallOverrides = undefined;
+        }
+      }
+    });
+  },
 
   setFloor: (floor) =>
     get().commit('Change flooring', (d) => {

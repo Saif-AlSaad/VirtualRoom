@@ -311,5 +311,29 @@ describe('interior partition walls and lighting', () => {
     f = useEditor.getState().doc.furniture.find((x) => x.instanceId === id);
     expect(f?.lightEnabled).toBeUndefined();
   });
+
+  it('customizes a specific wall with per-wall color and pattern overrides with undo/redo', () => {
+    // Customize North wall color
+    useEditor.getState().setWallSideColor('north', '#2b3a4a');
+    expect(useEditor.getState().doc.room.wallOverrides?.north?.color).toBe('#2b3a4a');
+    expect(useEditor.getState().doc.room.walls.color).not.toBe('#2b3a4a');
+
+    // Customize North wall pattern
+    useEditor.getState().setWallSidePattern('north', 'brick');
+    expect(useEditor.getState().doc.room.wallOverrides?.north?.pattern).toBe('brick');
+
+    // Reset North wall to default
+    useEditor.getState().resetWallSide('north');
+    expect(useEditor.getState().doc.room.wallOverrides?.north).toBeUndefined();
+
+    // Undo reset
+    useEditor.getState().undo();
+    expect(useEditor.getState().doc.room.wallOverrides?.north?.pattern).toBe('brick');
+    expect(useEditor.getState().doc.room.wallOverrides?.north?.color).toBe('#2b3a4a');
+
+    // Setting all walls updates base walls
+    useEditor.getState().setWallSideColor('all', '#ffffff');
+    expect(useEditor.getState().doc.room.walls.color).toBe('#ffffff');
+  });
 });
 

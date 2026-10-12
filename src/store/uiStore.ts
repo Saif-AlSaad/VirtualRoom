@@ -5,6 +5,7 @@ import type {
   TimeOfDay,
   ToastMessage,
   ViewMode,
+  WallSide,
 } from '@/types';
 import { DEFAULT_SNAP, type SnapSettings } from '@/utils/snapping';
 import { createId } from '@/utils/id';
@@ -106,6 +107,8 @@ export interface UIState extends Preferences {
   setCameraPreset: (preset: CameraPreset) => void;
   setTimeOfDay: (time: TimeOfDay) => void;
   setLightIntensity: (value: number) => void;
+  selectedWallSide: WallSide | 'all';
+  setSelectedWallSide: (side: WallSide | 'all') => void;
 
   toggleCatalog: (open?: boolean) => void;
   setPropertiesOpen: (open: boolean) => void;
@@ -256,6 +259,8 @@ export const useUI = create<UIState>((set, get) => ({
   setTimeOfDay: (timeOfDay) => set({ timeOfDay }),
   setLightIntensity: (lightIntensity) =>
     set({ lightIntensity: Math.min(Math.max(lightIntensity, 0), 2) }),
+  selectedWallSide: 'all',
+  setSelectedWallSide: (selectedWallSide) => set({ selectedWallSide }),
 
   toggleCatalog: (open) =>
     set((s) => ({ catalogOpen: open ?? !s.catalogOpen })),

@@ -58,16 +58,29 @@ interface Packed {
   fp: number;
   o: PackedOpening[];
   f: PackedFurniture[];
+  wo?: Array<[number, string, number]>;
 }
 
 const WALL_ORDER = ['north', 'south', 'east', 'west'] as const;
 const PATTERN_ORDER = ['plain', 'planks', 'tiles', 'herringbone'] as const;
+const WALL_PATTERNS = ['plain', 'brick', 'panels', 'subway', 'stripes', 'concrete'] as const;
 
 const FLAG_LOCKED = 1;
 const FLAG_HIDDEN = 2;
 
 function pack(doc: DocumentState): Packed {
   const d = doc.room.dimensions;
+  const wo: Array<[number, string, number]> = [];
+  if (doc.room.wallOverrides) {
+    for (const [side, finish] of Object.entries(doc.room.wallOverrides)) {
+      if (finish) {
+        const sideIdx = WALL_ORDER.indexOf(side as (typeof WALL_ORDER)[number]);
+        const patIdx = Math.max(0, (WALL_PATTERNS as readonly string[]).indexOf(finish.pattern ?? 'plain'));
+        wo.push([sideIdx, finish.color.replace('#', ''), patIdx]);
+      }
+    }
+  }
+
   return {
     v: PACK_VERSION,
     n: doc.name.slice(0, 80),
@@ -98,12 +111,26 @@ function pack(doc: DocumentState): Packed {
       f.colorOverride ? f.colorOverride.replace('#', '') : '',
       (f.locked ? FLAG_LOCKED : 0) | (f.visible ? 0 : FLAG_HIDDEN),
     ]),
+    wo: wo.length > 0 ? wo : undefined,
   };
 }
 
 /** Expands the packed form back into the loose shape `parseProject` accepts. */
 function unpack(p: Packed): unknown {
   const dims = Array.isArray(p.d) ? p.d : [4, 5, 2.6, 0.12];
+  const wallOverrides: Record<string, { color: string; pattern: string }> = {};
+  if (Array.isArray(p.wo)) {
+    for (const [sideIdx, col, patIdx] of p.wo) {
+      const side = WALL_ORDER[sideIdx];
+      if (side) {
+        wallOverrides[side] = {
+          color: `#${col}`,
+          pattern: WALL_PATTERNS[patIdx] ?? 'plain',
+        };
+      }
+    }
+  }
+
   return {
     schemaVersion: SCHEMA_VERSION,
     name: p.n,
@@ -116,6 +143,7 @@ function unpack(p: Packed): unknown {
         wallThickness: dims[3],
       },
       walls: { color: `#${p.wc}` },
+      wallOverrides: Object.keys(wallOverrides).length > 0 ? wallOverrides : undefined,
       floor: {
         color: `#${p.fc}`,
         pattern: PATTERN_ORDER[p.fp] ?? 'planks',

@@ -9,6 +9,7 @@ import {
   type WallSide,
   type WallFinish,
   type WallPartition,
+  type WallPattern,
 } from '@/types';
 import { createId, createProjectId } from './id';
 import { getCatalogItem } from '@/data/catalog';
@@ -350,6 +351,31 @@ export function parseProject(raw: unknown): ParseResult {
     openings: [],
     partitions: [],
   };
+
+  const rawOverrides = isObject(rawRoom.wallOverrides) ? rawRoom.wallOverrides : null;
+  if (rawOverrides) {
+    const overrides: Partial<Record<WallSide, WallFinish>> = {};
+    for (const side of ['north', 'south', 'east', 'west'] as WallSide[]) {
+      const rawOverride = (rawOverrides as Record<string, unknown>)[side];
+      if (isObject(rawOverride)) {
+        overrides[side] = {
+          color: color(rawOverride.color, room.walls.color),
+          pattern:
+            rawOverride.pattern === 'plain' ||
+            rawOverride.pattern === 'brick' ||
+            rawOverride.pattern === 'panels' ||
+            rawOverride.pattern === 'subway' ||
+            rawOverride.pattern === 'stripes' ||
+            rawOverride.pattern === 'concrete'
+              ? (rawOverride.pattern as WallPattern)
+              : room.walls.pattern ?? 'plain',
+        };
+      }
+    }
+    if (Object.keys(overrides).length > 0) {
+      room.wallOverrides = overrides;
+    }
+  }
 
   const rawOpenings = Array.isArray(rawRoom.openings) ? rawRoom.openings : [];
   if (rawOpenings.length > 40) {

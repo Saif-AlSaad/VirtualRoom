@@ -74,6 +74,23 @@ describe('encode / decode', () => {
     expect(item.visible).toBe(false);
   });
 
+  it('preserves accent wall overrides across share link round-trip', () => {
+    const source = sampleDoc();
+    source.room.wallOverrides = {
+      north: { color: '#2b3a4a', pattern: 'brick' },
+      west: { color: '#ffffff', pattern: 'panels' },
+    };
+    const result = decodeShareData(encodeShareData(source));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const { project } = result;
+    expect(project.room.wallOverrides?.north?.color).toBe('#2b3a4a');
+    expect(project.room.wallOverrides?.north?.pattern).toBe('brick');
+    expect(project.room.wallOverrides?.west?.color).toBe('#ffffff');
+    expect(project.room.wallOverrides?.west?.pattern).toBe('panels');
+  });
+
   it('survives a name with non-ASCII characters', () => {
     const source = sampleDoc();
     source.name = 'Sitzécke — 客厅 🛋';

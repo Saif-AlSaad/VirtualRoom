@@ -226,6 +226,8 @@ export interface WallPartition {
 export interface Room {
   dimensions: RoomDimensions;
   walls: WallFinish;
+  /** Optional per-wall finish overrides (accent walls). */
+  wallOverrides?: Partial<Record<WallSide, WallFinish>>;
   floor: FloorFinish;
   openings: Opening[];
   partitions?: WallPartition[];

@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, type ThreeEvent } from '@react-three/fiber';
+import { Line } from '@react-three/drei';
 import type { Room as RoomModel, WallSide } from '@/types';
 import { getFloorTexture } from '@/utils/floorTexture';
 import { getWallMaterialProperties, getWallTexture } from '@/utils/wallTexture';
 import { wallLength } from '@/utils/roomGeometry';
 import { buildWallSegments } from '@/utils/wallSegments';
 import { useUI } from '@/store/uiStore';
+import { useEditor } from '@/store/editorStore';
 
 /**
  * The room shell: floor, ceiling-less walls, skirting and real openings.
@@ -97,14 +99,30 @@ function Wall({
   const cornerPad = (geomLength - innerLength) / 2;
   const groupRef = useRef<THREE.Group>(null);
 
+  // Per-wall accent finish override or fall back to default room walls
+  const wallFinish = room.wallOverrides?.[side] ?? room.walls;
+
   const wallTexture = useMemo(
-    () => getWallTexture(room.walls, innerLength, height),
-    [room.walls, innerLength, height]
+    () => getWallTexture(wallFinish, innerLength, height),
+    [wallFinish, innerLength, height]
   );
   const wallProps = useMemo(
-    () => getWallMaterialProperties(room.walls.pattern),
-    [room.walls.pattern]
+    () => getWallMaterialProperties(wallFinish.pattern),
+    [wallFinish.pattern]
   );
+
+  const setSelectedWallSide = useUI((s) => s.setSelectedWallSide);
+  const setPropertiesOpen = useUI((s) => s.setPropertiesOpen);
+  const viewMode = useUI((s) => s.viewMode);
+  const clearSelection = useEditor((s) => s.clearSelection);
+
+  const onPointerDown = (e: ThreeEvent<PointerEvent>) => {
+    if (viewMode === 'walk') return;
+    e.stopPropagation();
+    clearSelection();
+    setSelectedWallSide(side);
+    setPropertiesOpen(true);
+  };
 
   // One material instance shared by every segment of this wall, so the fade
   // animates the wall as a single surface instead of piece by piece.
@@ -121,11 +139,11 @@ function Wall({
   useEffect(() => () => material.dispose(), [material]);
   useEffect(() => {
     material.map = wallTexture ?? null;
-    material.color.set(wallTexture ? '#ffffff' : room.walls.color);
+    material.color.set(wallTexture ? '#ffffff' : wallFinish.color);
     material.roughness = wallProps.roughness;
     material.metalness = wallProps.metalness;
     material.needsUpdate = true;
-  }, [material, room.walls.color, wallTexture, wallProps]);
+  }, [material, wallFinish.color, wallTexture, wallProps]);
 
   useFrame((state, delta) => {
     const mat = material;
@@ -155,7 +173,14 @@ function Wall({
   return (
     <group ref={groupRef} position={position} rotation={[0, rotation, 0]}>
       {segments.map((s, i) => (
-        <mesh key={i} position={[s.x, s.y, 0]} material={material} castShadow receiveShadow>
+        <mesh
+          key={i}
+          position={[s.x, s.y, 0]}
+          material={material}
+          castShadow
+          receiveShadow
+          onPointerDown={onPointerDown}
+        >
           <boxGeometry args={[s.w, s.h, wallThickness]} />
         </mesh>
       ))}
@@ -168,6 +193,7 @@ function Wall({
             material={material}
             castShadow
             receiveShadow
+            onPointerDown={onPointerDown}
           >
             <boxGeometry args={[cornerPad, height, wallThickness]} />
           </mesh>
@@ -179,6 +205,7 @@ function Wall({
 export function Room({ room }: { room: RoomModel }) {
   const { width, length } = room.dimensions;
   const viewMode = useUI((s) => s.viewMode);
+  const selectedWallSide = useUI((s) => s.selectedWallSide);
 
   const texture = useMemo(
     () => getFloorTexture(room.floor, width, length),
@@ -229,6 +256,35 @@ export function Room({ room }: { room: RoomModel }) {
       {(['north', 'south', 'west', 'east'] as WallSide[]).map((side) => (
         <Wall key={side} side={side} room={room} fade={fade} />
       ))}
+
+      {/* Selected wall highlight on inner room boundary */}
+      {selectedWallSide !== 'all' && (
+        <Line
+          points={
+            selectedWallSide === 'north'
+              ? [
+                  [-width / 2, 0.02, -length / 2],
+                  [width / 2, 0.02, -length / 2],
+                ]
+              : selectedWallSide === 'south'
+              ? [
+                  [-width / 2, 0.02, length / 2],
+                  [width / 2, 0.02, length / 2],
+                ]
+              : selectedWallSide === 'west'
+              ? [
+                  [-width / 2, 0.02, -length / 2],
+                  [-width / 2, 0.02, length / 2],
+                ]
+              : [
+                  [width / 2, 0.02, -length / 2],
+                  [width / 2, 0.02, length / 2],
+                ]
+          }
+          color="#588157"
+          lineWidth={4}
+        />
+      )}
 
       {/* Outer ground plane so the room does not float in a void. */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>

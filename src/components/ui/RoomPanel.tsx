@@ -161,8 +161,9 @@ function OpeningRow({ id }: { id: string }) {
 export function RoomPanel() {
   const doc = useEditor((s) => s.doc);
   const setRoomDimensions = useEditor((s) => s.setRoomDimensions);
-  const setWallColor = useEditor((s) => s.setWallColor);
-  const setWallPattern = useEditor((s) => s.setWallPattern);
+  const setWallSideColor = useEditor((s) => s.setWallSideColor);
+  const setWallSidePattern = useEditor((s) => s.setWallSidePattern);
+  const resetWallSide = useEditor((s) => s.resetWallSide);
   const setFloor = useEditor((s) => s.setFloor);
   const setUnit = useEditor((s) => s.setUnit);
   const addOpening = useEditor((s) => s.addOpening);
@@ -178,6 +179,8 @@ export function RoomPanel() {
   const setShowClearance = useUI((s) => s.setShowClearance);
   const showGrid = useUI((s) => s.showGrid);
   const setShowGrid = useUI((s) => s.setShowGrid);
+  const selectedWallSide = useUI((s) => s.selectedWallSide);
+  const setSelectedWallSide = useUI((s) => s.setSelectedWallSide);
   const snap = useUI((s) => s.snap);
   const setSnap = useUI((s) => s.setSnap);
   const openModal = useUI((s) => s.openModal);
@@ -328,20 +331,120 @@ export function RoomPanel() {
       </Section>
 
       <Section title="Finishes" icon="sparkle">
+        {/* Wall Target: All Walls vs North / South / East / West */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
+              Wall target
+            </span>
+            {selectedWallSide !== 'all' ? (
+              doc.room.wallOverrides?.[selectedWallSide] ? (
+                <span className="rounded-control bg-sage-100 px-1.5 py-0.5 text-[10px] font-semibold text-sage-800 dark:bg-sage-950/60 dark:text-sage-300">
+                  Accent Wall
+                </span>
+              ) : (
+                <span className="text-[10px] text-ink-400">Room Default</span>
+              )
+            ) : null}
+          </div>
+          <Segmented
+            size="sm"
+            label="Wall target"
+            value={selectedWallSide}
+            options={[
+              { value: 'all', label: 'All Walls' },
+              { value: 'north', label: 'North' },
+              { value: 'south', label: 'South' },
+              { value: 'east', label: 'East' },
+              { value: 'west', label: 'West' },
+            ]}
+            onChange={(val) => setSelectedWallSide(val as WallSide | 'all')}
+          />
+        </div>
+
+        {/* Accent wall status card when an individual wall is selected */}
+        {selectedWallSide !== 'all' && (
+          doc.room.wallOverrides?.[selectedWallSide] ? (
+            <div className="flex items-center justify-between rounded-control border border-sage-300 bg-sage-50/60 p-2 text-caption dark:border-sage-800 dark:bg-sage-950/30">
+              <div className="min-w-0">
+                <p className="font-semibold text-sage-900 dark:text-sage-100">
+                  {WALL_LABEL[selectedWallSide]} Accent Wall
+                </p>
+                <p className="text-[11px] text-sage-600 dark:text-sage-400">
+                  Custom finish applied to this wall
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => resetWallSide(selectedWallSide)}
+              >
+                Reset
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between rounded-control border border-dashed border-ink-300 bg-ink-50/40 p-2 text-caption dark:border-ink-700 dark:bg-ink-800/30">
+              <div className="min-w-0">
+                <p className="font-medium text-ink-700 dark:text-ink-200">
+                  {WALL_LABEL[selectedWallSide]} Wall
+                </p>
+                <p className="text-[11px] text-ink-400">
+                  Currently matching base walls
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setWallSideColor(selectedWallSide, doc.room.walls.color)}
+              >
+                Customize
+              </Button>
+            </div>
+          )
+        )}
+
+        {/* Active accents quick-pills when "All Walls" is selected */}
+        {selectedWallSide === 'all' &&
+          doc.room.wallOverrides &&
+          Object.keys(doc.room.wallOverrides).length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 rounded-control bg-sage-50/50 p-2 dark:bg-sage-950/20">
+              <span className="text-[11px] font-medium text-sage-800 dark:text-sage-300">
+                Active Accents:
+              </span>
+              {WALL_SIDES.filter((s) => !!doc.room.wallOverrides?.[s]).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSelectedWallSide(s)}
+                  className="rounded-control bg-white px-2 py-0.5 text-[10px] font-medium text-ink-700 shadow-sm transition-colors hover:text-sage-700 dark:bg-ink-800 dark:text-ink-200"
+                >
+                  {WALL_LABEL[s]} Wall &rarr;
+                </button>
+              ))}
+            </div>
+          )}
+
+        {/* Wall pattern */}
         <div className="flex flex-col gap-2">
           <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
-            Wall pattern
+            {selectedWallSide === 'all'
+              ? 'Wall pattern'
+              : `${WALL_LABEL[selectedWallSide]} wall pattern`}
           </span>
           <div role="radiogroup" aria-label="Wall pattern" className="grid grid-cols-3 gap-1.5">
             {WALL_PATTERNS.map((p) => {
-              const active = (doc.room.walls.pattern ?? 'plain') === p.id;
+              const activeFinish =
+                selectedWallSide === 'all'
+                  ? doc.room.walls
+                  : (doc.room.wallOverrides?.[selectedWallSide] ?? doc.room.walls);
+              const active = (activeFinish.pattern ?? 'plain') === p.id;
               return (
                 <button
                   key={p.id}
                   type="button"
                   role="radio"
                   aria-checked={active}
-                  onClick={() => setWallPattern(p.id)}
+                  onClick={() => setWallSidePattern(selectedWallSide, p.id)}
                   className={clsx(
                     'flex flex-col items-start gap-0.5 rounded-control border p-1.5 text-left text-[11px]',
                     'transition-colors duration-150',
@@ -360,15 +463,22 @@ export function RoomPanel() {
           </div>
         </div>
 
+        {/* Wall colour */}
         <div className="flex flex-col gap-2">
           <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
-            Wall colour
+            {selectedWallSide === 'all'
+              ? 'Wall colour'
+              : `${WALL_LABEL[selectedWallSide]} wall colour`}
           </span>
           <SwatchGrid
             label="Wall colour"
             colors={WALL_COLORS.map((c) => ({ color: c.color, name: c.name }))}
-            value={doc.room.walls.color}
-            onChange={setWallColor}
+            value={
+              selectedWallSide === 'all'
+                ? doc.room.walls.color
+                : (doc.room.wallOverrides?.[selectedWallSide]?.color ?? doc.room.walls.color)
+            }
+            onChange={(c) => setWallSideColor(selectedWallSide, c)}
           />
         </div>
 

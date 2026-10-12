@@ -296,4 +296,25 @@ describe('partitions and lighting', () => {
     expect(f.lightIntensity).toBe(2.2);
     expect(f.lightColor).toBe('#ffeaad');
   });
+
+  it('parses valid wallOverrides (accent walls) and rejects malformed finishes', () => {
+    const result = parseProject({
+      ...baseProject(),
+      room: {
+        ...baseProject().room,
+        wallOverrides: {
+          north: { color: '#2b3a4a', pattern: 'brick' },
+          east: { color: 'not-a-color', pattern: 'invalid' },
+        },
+      },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const overrides = result.project.room.wallOverrides;
+    expect(overrides).toBeDefined();
+    expect(overrides?.north?.color).toBe('#2b3a4a');
+    expect(overrides?.north?.pattern).toBe('brick');
+    expect(overrides?.east?.color).toBe(result.project.room.walls.color);
+    expect(overrides?.east?.pattern).toBe('plain');
+  });
 });
