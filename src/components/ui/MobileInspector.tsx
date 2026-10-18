@@ -19,6 +19,7 @@ export function MobileInspector() {
   const unit = useEditor((s) => s.doc.unit);
   const viewerMode = useUI((s) => s.viewerMode);
   const viewMode = useUI((s) => s.viewMode);
+  const propertiesOpen = useUI((s) => s.propertiesOpen);
 
   const catalog = useMemo(
     () => (selected ? resolveCatalogItem(selected.catalogId) : null),
@@ -30,7 +31,10 @@ export function MobileInspector() {
     [selected, catalog]
   );
 
+  // In walk mode, or when properties panel is already open in edit mode,
+  // do not show the bottom card to prevent overlap with the context toolbar.
   if (!selected || !catalog || !size || viewMode === 'walk') return null;
+  if (!viewerMode && propertiesOpen) return null;
 
   const currentElevation = selected.elevation ?? catalog.elevation;
   const finish = catalog.finishes.find((f) => f.id === selected.finishId) ?? catalog.finishes[0];

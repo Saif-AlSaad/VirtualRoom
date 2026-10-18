@@ -10,3 +10,8 @@ coverage
 *.tsbuildinfo
 .vite
 .vercel
+
+# My Skills: begin
+AGENTS.md
+CLAUDE.md
+# My Skills: end

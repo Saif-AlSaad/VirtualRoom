@@ -213,7 +213,8 @@ export const useUI = create<UIState>((set, get) => ({
   measureToolActive: false,
   viewerMode:
     typeof window !== 'undefined' &&
-    (window.innerWidth < 1024 || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0)),
+    window.innerWidth < 1024 &&
+    (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0),
   pointerLockActive: false,
   walkJoystick: { forward: 0, strafe: 0 },
   walkLookDelta: { yaw: 0, pitch: 0 },

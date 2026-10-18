@@ -40,11 +40,16 @@ export function ContextToolbar() {
   const snapSelectionToFace = useEditor((s) => s.snapSelectionToFace);
   const presentation = useUI((s) => s.presentationMode);
   const reducedMotion = useUI((s) => s.reducedMotion);
+  const viewerMode = useUI((s) => s.viewerMode);
+  const propertiesOpen = useUI((s) => s.propertiesOpen);
 
   const selected = useMemo(
     () => furniture.filter((f) => selection.includes(f.instanceId)),
     [furniture, selection]
   );
+
+  // In read-only viewer mode, editing actions are hidden
+  if (viewerMode) return null;
 
   const anyLocked = selected.some((f) => f.locked);
   const anyHidden = selected.some((f) => !f.visible);
@@ -52,6 +57,9 @@ export function ContextToolbar() {
     selected.length === 1
       ? resolveCatalogItem(selected[0].catalogId).name
       : `${selected.length} items`;
+
+  // When properties panel is closed on a single selection, MobileInspector is displayed underneath
+  const hasInspectorBelow = !propertiesOpen && selected.length === 1;
 
   return (
     <AnimatePresence>
@@ -63,7 +71,10 @@ export function ContextToolbar() {
           transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
           role="toolbar"
           aria-label={`Actions for ${label}`}
-          className="glass pointer-events-auto absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-panel p-1.5 shadow-medium"
+          className={clsx(
+            "glass pointer-events-auto absolute left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-panel p-1.5 shadow-medium transition-[bottom] duration-200",
+            hasInspectorBelow ? "bottom-36" : "bottom-6"
+          )}
         >
           <span className="max-w-[12rem] truncate px-2 text-caption font-medium text-ink-700 dark:text-ink-200">
             {label}
