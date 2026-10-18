@@ -22,6 +22,7 @@ export type IconName =
   | 'eye'
   | 'eye-off'
   | 'rotate'
+  | 'rotate-ccw'
   | 'cube'
   | 'grid'
   | 'walk'
@@ -75,6 +76,7 @@ const PATHS: Record<IconName, string> = {
   eye: 'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
   'eye-off': 'M3 3l18 18M10.6 10.6A3 3 0 0 0 12 15a3 3 0 0 0 2.4-1.2M6.7 6.8C3.9 8.4 2 12 2 12s3.6 7 10 7c1.9 0 3.5-.6 4.9-1.4M9.9 5.2A9.9 9.9 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-2.7 3.5',
   rotate: 'M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5',
+  'rotate-ccw': 'M4 12a8 8 0 1 0 2.6-5.9M4 4v5h5',
   cube: 'M12 2 3 7v10l9 5 9-5V7l-9-5zM3 7l9 5 9-5M12 12v10',
   grid: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
   walk: 'M13 5a1.6 1.6 0 1 0 0-3.2A1.6 1.6 0 0 0 13 5zM11 21l1.4-6L10 13l1-5 3.2 1.4L17 11M12.4 15 9 21',
