@@ -5,6 +5,8 @@ a 44-item catalog, and get a truthful answer to *"will this actually fit?"* —
 with collision detection, circulation clearances, door-swing checks and
 snapping, in a 3D viewport that runs at 60 fps with no assets to download.
 
+![RoomCraft 3D Room Planner](docs/screenshot.png)
+
 Built with React 18, TypeScript, Three.js / React Three Fiber, Zustand, Tailwind
 and Framer Motion. No backend, no accounts, no network calls.
 
