@@ -52,8 +52,9 @@ export function DragController() {
       const doc = editor.doc;
       const dims = doc.room.dimensions;
       const snapSettings = useUI.getState().snap;
-      // Holding Alt is the universal "ignore snapping" modifier.
-      const settings = event.altKey
+      // Holding Alt or Shift allows free transform (ignoring snap for free angle & position).
+      const freeTransform = event.altKey || event.shiftKey;
+      const settings = freeTransform
         ? { ...snapSettings, grid: false, wall: false, furniture: false, rotationStep: 0 }
         : snapSettings;
 
@@ -69,13 +70,20 @@ export function DragController() {
           point.x - center.x,
           point.z - center.z
         );
-        const deltaDeg = ((angle - drag.startAngle) * 180) / Math.PI;
+        let delta = angle - drag.startAngle;
+        while (delta > Math.PI) delta -= Math.PI * 2;
+        while (delta < -Math.PI) delta += Math.PI * 2;
+        const deltaDeg = (delta * 180) / Math.PI;
+
         let next = normalizeAngle(drag.startRotation + deltaDeg);
         if (settings.rotationStep > 0) {
           next =
             normalizeAngle(
               Math.round(next / settings.rotationStep) * settings.rotationStep
             );
+        } else {
+          // Free angle mode: smooth continuous rotation to 0.5° precision
+          next = normalizeAngle(Math.round(next * 2) / 2);
         }
 
         editor.mutateLive((d) => {
@@ -91,6 +99,16 @@ export function DragController() {
               p.position = clampRectToRoom(partitionRect(p), dims.width, dims.length);
             }
           }
+        });
+
+        const after = useEditor.getState().doc;
+        const moved = after.furniture.find((f) => f.instanceId === target.id);
+        const check = moved
+          ? isPlacementValid(moved, after)
+          : { valid: true, reason: null };
+        useDrag.setState({
+          guides: [],
+          invalidReason: check.valid ? null : check.reason,
         });
         return;
       }
@@ -216,6 +234,7 @@ export function DragController() {
       if (useDrag.getState().mode === null) return;
       useEditor.getState().endGesture();
       useDrag.getState().end();
+      element.style.cursor = 'auto';
     };
 
     window.addEventListener('pointermove', onPointerMove);
