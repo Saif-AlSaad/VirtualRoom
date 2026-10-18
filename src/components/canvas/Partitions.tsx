@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
-import { type ThreeEvent } from '@react-three/fiber';
+import * as THREE from 'three';
+import { useThree, type ThreeEvent } from '@react-three/fiber';
 import { Html, Line } from '@react-three/drei';
 import type { WallPartition, WallFinish } from '@/types';
 import { useEditor } from '@/store/editorStore';
@@ -18,14 +19,21 @@ interface PartitionItemProps {
 }
 
 function PartitionItem({ partition, roomWalls, selected }: PartitionItemProps) {
+  const { gl } = useThree();
   const select = useEditor((s) => s.select);
   const beginGesture = useEditor((s) => s.beginGesture);
   const startDrag = useDrag((s) => s.start);
+  const startRotate = useDrag((s) => s.startRotate);
+  const dragMode = useDrag((s) => s.mode);
+  const dragTargets = useDrag((s) => s.targets);
   const viewMode = useUI((s) => s.viewMode);
   const viewerMode = useUI((s) => s.viewerMode);
   const unit = useEditor((s) => s.doc.unit);
 
   const [hovered, setHovered] = useState(false);
+  const [rotateHovered, setRotateHovered] = useState(false);
+
+  const isRotating = dragMode === 'rotate' && dragTargets[0]?.id === partition.id;
 
   const { length, thickness, height, position, rotation } = partition;
   const finish = partition.finish ?? roomWalls;
@@ -67,7 +75,11 @@ function PartitionItem({ partition, roomWalls, selected }: PartitionItemProps) {
 
       if (viewerMode) return;
 
-      const grab = { x: event.point.x, z: event.point.z };
+      const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+      const floorHit = new THREE.Vector3();
+      const floorPoint = event.ray ? event.ray.intersectPlane(floorPlane, floorHit) : null;
+      const grab = floorPoint ? { x: floorPoint.x, z: floorPoint.z } : { x: event.point.x, z: event.point.z };
+
       beginGesture('Move interior wall');
       startDrag('move', [
         {
@@ -81,6 +93,37 @@ function PartitionItem({ partition, roomWalls, selected }: PartitionItemProps) {
     },
     [beginGesture, partition.id, position.x, position.z, select, startDrag, viewMode, viewerMode]
   );
+
+  const onRotateStart = useCallback(
+    (event: ThreeEvent<PointerEvent>) => {
+      if (viewMode === 'walk') return;
+      event.stopPropagation();
+      (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
+
+      const state = useEditor.getState();
+      if (!state.selection.includes(partition.id)) {
+        select(partition.id, false);
+      }
+
+      if (viewerMode) return;
+
+      const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+      const floorHit = new THREE.Vector3();
+      const floorPoint = event.ray ? event.ray.intersectPlane(floorPlane, floorHit) : null;
+      const point = floorPoint ?? event.point;
+
+      const startAngle = Math.atan2(
+        point.x - position.x,
+        point.z - position.z
+      );
+
+      beginGesture('Rotate interior wall');
+      startRotate(partition.id, startAngle, rotation);
+    },
+    [beginGesture, partition.id, position.x, position.z, rotation, select, startRotate, viewMode, viewerMode]
+  );
+
+  const stalkLength = Math.max(0.35, length * 0.25);
 
   return (
     <group
@@ -100,6 +143,78 @@ function PartitionItem({ partition, roomWalls, selected }: PartitionItemProps) {
         />
       )}
 
+      {/* Interactive rotation handle stalk & knob when selected */}
+      {selected && !viewerMode && (
+        <group position={[0, 0.015, length / 2]}>
+          <Line
+            points={[
+              [0, 0, 0],
+              [0, 0, stalkLength],
+            ]}
+            color={ACCENT}
+            lineWidth={2}
+            transparent
+            opacity={0.85}
+            depthTest={false}
+            renderOrder={999}
+          />
+          <group position={[0, 0, stalkLength]}>
+            <mesh rotation={[-Math.PI / 2, 0, 0]} renderOrder={1001}>
+              <ringGeometry args={[0.065, 0.088, 32]} />
+              <meshBasicMaterial
+                color={rotateHovered || isRotating ? '#10b981' : ACCENT}
+                depthTest={false}
+                transparent
+              />
+            </mesh>
+            <mesh rotation={[-Math.PI / 2, 0, 0]} renderOrder={1001}>
+              <circleGeometry args={[0.048, 32]} />
+              <meshBasicMaterial
+                color={rotateHovered || isRotating ? '#10b981' : '#ffffff'}
+                depthTest={false}
+                transparent
+                opacity={0.95}
+              />
+            </mesh>
+            <mesh
+              rotation={[-Math.PI / 2, 0, 0]}
+              renderOrder={1002}
+              onPointerDown={onRotateStart}
+              onPointerOver={(e) => {
+                e.stopPropagation();
+                gl.domElement.style.cursor = 'crosshair';
+                setRotateHovered(true);
+              }}
+              onPointerOut={() => {
+                gl.domElement.style.cursor = 'auto';
+                setRotateHovered(false);
+              }}
+            >
+              <circleGeometry args={[0.16, 16]} />
+              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            </mesh>
+          </group>
+        </group>
+      )}
+
+      {/* Floating live rotation angle badge */}
+      {isRotating && (
+        <Html
+          position={[0, height + 0.35, 0]}
+          center
+          distanceFactor={12}
+          style={{ pointerEvents: 'none', userSelect: 'none' }}
+        >
+          <div className="flex items-center gap-1.5 rounded-full border border-sage-500/70 bg-ink-950/90 px-3 py-1 text-xs font-semibold text-sage-100 shadow-2xl backdrop-blur-md whitespace-nowrap">
+            <span className="text-emerald-400 font-bold">↻</span>
+            <span className="tabular-nums">{Math.round(rotation)}°</span>
+            <span className="text-[10px] text-ink-400 font-normal ml-1">
+              (Shift for free angle)
+            </span>
+          </div>
+        </Html>
+      )}
+
       {/* Main volumetric wall mesh */}
       <mesh
         position={[0, height / 2, 0]}
@@ -109,8 +224,12 @@ function PartitionItem({ partition, roomWalls, selected }: PartitionItemProps) {
         onPointerOver={(e) => {
           e.stopPropagation();
           setHovered(true);
+          gl.domElement.style.cursor = 'move';
         }}
-        onPointerOut={() => setHovered(false)}
+        onPointerOut={() => {
+          setHovered(false);
+          gl.domElement.style.cursor = 'auto';
+        }}
       >
         <boxGeometry args={[thickness, height, length]} />
         <meshStandardMaterial

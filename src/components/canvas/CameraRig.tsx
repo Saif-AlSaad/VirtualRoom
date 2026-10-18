@@ -27,20 +27,28 @@ interface Props {
 /** Camera position + target for each preset, derived from the room size. */
 function presetTransform(
   preset: CameraPreset,
-  dims: RoomDimensions
+  dims: RoomDimensions,
+  planViewAngle = 0
 ): { position: THREE.Vector3; target: THREE.Vector3 } {
   const { width: w, length: l, height: h } = dims;
   const span = Math.max(w, l);
   const target = new THREE.Vector3(0, h * 0.35, 0);
 
   switch (preset) {
-    case 'top':
+    case 'top': {
+      const angleRad = (planViewAngle * Math.PI) / 180;
+      // An intentional offset prevents OrbitControls from gimbal-locking at the vertical axis
+      // and sets the directional orientation of the plan view.
+      const offset = Math.max(0.6, span * 0.08);
       return {
-        // Nudged off true vertical: a perfectly axial camera makes OrbitControls
-        // gimbal-lock when the user starts to rotate away from it.
-        position: new THREE.Vector3(0.001, span * 1.65 + 2, 0.001),
+        position: new THREE.Vector3(
+          Math.sin(angleRad) * offset,
+          span * 1.65 + 2,
+          Math.cos(angleRad) * offset
+        ),
         target: new THREE.Vector3(0, 0, 0),
       };
+    }
     case 'front':
       return {
         position: new THREE.Vector3(0, h * 0.75, l * 0.5 + span * 1.15),
@@ -76,6 +84,7 @@ export function CameraRig({ dims }: Props) {
   const viewMode = useUI((s) => s.viewMode);
   const preset = useUI((s) => s.cameraPreset);
   const nonce = useUI((s) => s.cameraNonce);
+  const planViewAngle = useUI((s) => s.planViewAngle);
   const reducedMotion = useUI((s) => s.reducedMotion);
   const dragMode = useDrag((s) => s.mode);
 
@@ -94,7 +103,7 @@ export function CameraRig({ dims }: Props) {
   });
 
   useEffect(() => {
-    const { position, target } = presetTransform(preset, dims);
+    const { position, target } = presetTransform(preset, dims, planViewAngle);
     goalPosition.current.copy(position);
     goalTarget.current.copy(target);
 
@@ -108,7 +117,7 @@ export function CameraRig({ dims }: Props) {
     }
     // `nonce` is in the dependency list so re-selecting the same preset
     // re-triggers the fly-to rather than doing nothing.
-  }, [preset, nonce, dims, camera, reducedMotion]);
+  }, [preset, nonce, dims, camera, reducedMotion, planViewAngle]);
 
   // ── Walkthrough input & Pointer Lock ───────────────────────────────────
   useEffect(() => {
@@ -312,15 +321,15 @@ export function CameraRig({ dims }: Props) {
       onStart={() => {
         flying.current = false;
       }}
-      enableRotate={!topDown}
+      enableRotate
       enablePan
       screenSpacePanning={false}
       minDistance={1.2}
       maxDistance={span * 5 + 12}
-      // Never let the camera go below the floor.
-      maxPolarAngle={topDown ? 0.001 : Math.PI * 0.495}
-      minPolarAngle={topDown ? 0 : 0.05}
-      target={[0, dims.height * 0.35, 0]}
+      // Never let the camera go below the floor, and allow free angle rotation in top/plan view
+      maxPolarAngle={topDown ? 0.35 : Math.PI * 0.495}
+      minPolarAngle={0}
+      target={[0, topDown || preset === 'top' ? 0 : dims.height * 0.35, 0]}
       mouseButtons={{
         LEFT: THREE.MOUSE.ROTATE,
         MIDDLE: THREE.MOUSE.DOLLY,

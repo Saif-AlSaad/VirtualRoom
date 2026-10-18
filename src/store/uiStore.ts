@@ -105,6 +105,9 @@ export interface UIState extends Preferences {
   addWalkLookDelta: (delta: { yaw: number; pitch: number }) => void;
   consumeWalkLookDelta: () => { yaw: number; pitch: number };
   setCameraPreset: (preset: CameraPreset) => void;
+  planViewAngle: number;
+  setPlanViewAngle: (angle: number) => void;
+  rotatePlanView: (deltaDegrees: number) => void;
   setTimeOfDay: (time: TimeOfDay) => void;
   setLightIntensity: (value: number) => void;
   selectedWallSide: WallSide | 'all';
@@ -255,6 +258,24 @@ export const useUI = create<UIState>((set, get) => ({
       cameraNonce: s.cameraNonce + 1,
       viewMode: s.viewMode === '2d' && cameraPreset !== 'top' ? '3d' : s.viewMode,
     })),
+
+  planViewAngle: 0,
+  setPlanViewAngle: (planViewAngle) =>
+    set((s) => ({
+      planViewAngle: ((planViewAngle % 360) + 360) % 360,
+      cameraPreset: 'top',
+      cameraNonce: s.cameraNonce + 1,
+    })),
+
+  rotatePlanView: (delta) =>
+    set((s) => {
+      const nextAngle = ((s.planViewAngle + delta) % 360 + 360) % 360;
+      return {
+        planViewAngle: nextAngle,
+        cameraPreset: 'top',
+        cameraNonce: s.cameraNonce + 1,
+      };
+    }),
 
   setTimeOfDay: (timeOfDay) => set({ timeOfDay }),
   setLightIntensity: (lightIntensity) =>

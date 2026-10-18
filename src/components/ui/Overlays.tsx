@@ -161,6 +161,10 @@ export function MiniMap() {
   const selection = useEditor((s) => s.selection);
   const select = useEditor((s) => s.select);
   const setCameraPreset = useUI((s) => s.setCameraPreset);
+  const cameraPreset = useUI((s) => s.cameraPreset);
+  const planViewAngle = useUI((s) => s.planViewAngle);
+  const setPlanViewAngle = useUI((s) => s.setPlanViewAngle);
+  const rotatePlanView = useUI((s) => s.rotatePlanView);
   const presentation = useUI((s) => s.presentationMode);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -208,72 +212,166 @@ export function MiniMap() {
   const roomBR = toSvg(width / 2, length / 2);
 
   return (
-    <div className="pointer-events-auto absolute bottom-6 left-6 z-20 opacity-55 transition-opacity duration-200 hover:opacity-100 focus-within:opacity-100">
-      <svg
-        ref={svgRef}
-        width={MAP_SIZE}
-        height={MAP_SIZE}
-        viewBox={`0 0 ${MAP_SIZE} ${MAP_SIZE}`}
-        role="img"
-        aria-label={`Plan view of ${doc.name}, ${doc.furniture.length} items placed`}
-        className="rounded-panel border border-ink-200/80 bg-white/85 shadow-medium backdrop-blur-[12px] dark:border-ink-700/80 dark:bg-ink-900/85"
-      >
-        <rect
-          x={roomTL.x}
-          y={roomTL.y}
-          width={roomBR.x - roomTL.x}
-          height={roomBR.y - roomTL.y}
-          className="fill-sage-50 stroke-sage-700 dark:fill-ink-800"
-          strokeWidth={1.5}
-        />
-
-        {/* Openings, drawn as gaps in the wall line */}
-        {doc.room.openings.map((o) => {
-          const half = o.width / 2;
-          const a =
-            o.wall === 'north' || o.wall === 'south'
-              ? toSvg(-width / 2 + o.offset - half, o.wall === 'north' ? -length / 2 : length / 2)
-              : toSvg(o.wall === 'west' ? -width / 2 : width / 2, -length / 2 + o.offset - half);
-          const b =
-            o.wall === 'north' || o.wall === 'south'
-              ? toSvg(-width / 2 + o.offset + half, o.wall === 'north' ? -length / 2 : length / 2)
-              : toSvg(o.wall === 'west' ? -width / 2 : width / 2, -length / 2 + o.offset + half);
-          return (
-            <line
-              key={o.id}
-              x1={a.x}
-              y1={a.y}
-              x2={b.x}
-              y2={b.y}
-              stroke={o.kind === 'door' ? '#588157' : '#7aa5c4'}
-              strokeWidth={3}
-              strokeLinecap="round"
-            />
-          );
-        })}
-
-        {shapes.map((s) => (
-          <polygon
-            key={s.id}
-            points={s.points}
-            fill={s.color}
-            fillOpacity={s.selected ? 0.95 : 0.7}
-            stroke={s.selected ? '#344e41' : 'rgba(52,78,65,0.35)'}
-            strokeWidth={s.selected ? 1.6 : 0.8}
-            className="cursor-pointer"
-            onClick={() => select(s.id)}
+    <div className="pointer-events-auto absolute bottom-6 left-6 z-20 opacity-75 transition-opacity duration-200 hover:opacity-100 focus-within:opacity-100">
+      <div className="relative">
+        <svg
+          ref={svgRef}
+          width={MAP_SIZE}
+          height={MAP_SIZE}
+          viewBox={`0 0 ${MAP_SIZE} ${MAP_SIZE}`}
+          role="img"
+          aria-label={`Plan view of ${doc.name}, ${doc.furniture.length} items placed`}
+          className="rounded-panel border border-ink-200/80 bg-white/85 shadow-medium backdrop-blur-[12px] dark:border-ink-700/80 dark:bg-ink-900/85"
+        >
+          <rect
+            x={roomTL.x}
+            y={roomTL.y}
+            width={roomBR.x - roomTL.x}
+            height={roomBR.y - roomTL.y}
+            className="fill-sage-50 stroke-sage-700 dark:fill-ink-800"
+            strokeWidth={1.5}
           />
-        ))}
-      </svg>
 
-      <div className="mt-1.5 flex justify-center">
-        <Tooltip content="Jump to top-down view">
+          {/* Openings, drawn as gaps in the wall line */}
+          {doc.room.openings.map((o) => {
+            const half = o.width / 2;
+            const a =
+              o.wall === 'north' || o.wall === 'south'
+                ? toSvg(-width / 2 + o.offset - half, o.wall === 'north' ? -length / 2 : length / 2)
+                : toSvg(o.wall === 'west' ? -width / 2 : width / 2, -length / 2 + o.offset - half);
+            const b =
+              o.wall === 'north' || o.wall === 'south'
+                ? toSvg(-width / 2 + o.offset + half, o.wall === 'north' ? -length / 2 : length / 2)
+                : toSvg(o.wall === 'west' ? -width / 2 : width / 2, -length / 2 + o.offset + half);
+            return (
+              <line
+                key={o.id}
+                x1={a.x}
+                y1={a.y}
+                x2={b.x}
+                y2={b.y}
+                stroke={o.kind === 'door' ? '#588157' : '#7aa5c4'}
+                strokeWidth={3}
+                strokeLinecap="round"
+              />
+            );
+          })}
+
+          {shapes.map((s) => (
+            <polygon
+              key={s.id}
+              points={s.points}
+              fill={s.color}
+              fillOpacity={s.selected ? 0.95 : 0.7}
+              stroke={s.selected ? '#344e41' : 'rgba(52,78,65,0.35)'}
+              strokeWidth={s.selected ? 1.6 : 0.8}
+              className="cursor-pointer"
+              onClick={() => select(s.id)}
+            />
+          ))}
+        </svg>
+
+        {/* Cardinal orientation buttons */}
+        <button
+          type="button"
+          onClick={() => setPlanViewAngle(0)}
+          title="Align plan view North (0°)"
+          aria-label="Align plan view North"
+          className={clsx(
+            "absolute left-1/2 top-1 -translate-x-1/2 rounded px-1 py-0.2 text-[9px] font-bold transition-all",
+            cameraPreset === 'top' && planViewAngle === 0
+              ? "bg-sage-600 text-white shadow-xs"
+              : "text-ink-400 hover:text-ink-800 dark:hover:text-sage-300"
+          )}
+        >
+          N
+        </button>
+        <button
+          type="button"
+          onClick={() => setPlanViewAngle(90)}
+          title="Align plan view East (90°)"
+          aria-label="Align plan view East"
+          className={clsx(
+            "absolute right-1 top-1/2 -translate-y-1/2 rounded px-1 py-0.2 text-[9px] font-bold transition-all",
+            cameraPreset === 'top' && planViewAngle === 90
+              ? "bg-sage-600 text-white shadow-xs"
+              : "text-ink-400 hover:text-ink-800 dark:hover:text-sage-300"
+          )}
+        >
+          E
+        </button>
+        <button
+          type="button"
+          onClick={() => setPlanViewAngle(180)}
+          title="Align plan view South (180°)"
+          aria-label="Align plan view South"
+          className={clsx(
+            "absolute bottom-1 left-1/2 -translate-x-1/2 rounded px-1 py-0.2 text-[9px] font-bold transition-all",
+            cameraPreset === 'top' && planViewAngle === 180
+              ? "bg-sage-600 text-white shadow-xs"
+              : "text-ink-400 hover:text-ink-800 dark:hover:text-sage-300"
+          )}
+        >
+          S
+        </button>
+        <button
+          type="button"
+          onClick={() => setPlanViewAngle(270)}
+          title="Align plan view West (270°)"
+          aria-label="Align plan view West"
+          className={clsx(
+            "absolute left-1 top-1/2 -translate-y-1/2 rounded px-1 py-0.2 text-[9px] font-bold transition-all",
+            cameraPreset === 'top' && planViewAngle === 270
+              ? "bg-sage-600 text-white shadow-xs"
+              : "text-ink-400 hover:text-ink-800 dark:hover:text-sage-300"
+          )}
+        >
+          W
+        </button>
+      </div>
+
+      {/* Plan view & angle rotation controls */}
+      <div className="mt-1.5 flex items-center justify-between gap-1 rounded-panel border border-ink-200/80 bg-white/90 p-1 shadow-subtle backdrop-blur dark:border-ink-700/80 dark:bg-ink-900/90">
+        <Tooltip content="Rotate plan view -90° (Counter-clockwise)">
           <button
             type="button"
-            onClick={() => setCameraPreset('top')}
-            className="rounded-control bg-white/85 px-2 py-0.5 text-[11px] text-ink-500 shadow-subtle backdrop-blur transition-colors duration-150 hover:text-ink-800 dark:bg-ink-900/85 dark:text-ink-400"
+            onClick={() => rotatePlanView(-90)}
+            aria-label="Rotate plan view counter-clockwise"
+            className="flex h-6 w-6 items-center justify-center rounded-[4px] text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900 dark:text-ink-300 dark:hover:bg-ink-800 dark:hover:text-white"
           >
-            Plan view
+            <Icon name="rotate-ccw" className="h-3.5 w-3.5" />
+          </button>
+        </Tooltip>
+
+        <Tooltip content={`Plan view angle: ${planViewAngle}° (Click to cycle 90°)`}>
+          <button
+            type="button"
+            onClick={() => {
+              if (cameraPreset === 'top') {
+                rotatePlanView(90);
+              } else {
+                setCameraPreset('top');
+              }
+            }}
+            className={clsx(
+              "flex flex-1 items-center justify-center gap-1 px-2 py-0.5 text-[11px] font-medium transition-colors duration-150 rounded-[4px]",
+              cameraPreset === 'top'
+                ? "bg-sage-700 text-sage-50 font-semibold shadow-xs"
+                : "text-ink-600 hover:bg-ink-100 hover:text-ink-900 dark:text-ink-300 dark:hover:bg-ink-800 dark:hover:text-white"
+            )}
+          >
+            <span>Plan {planViewAngle > 0 ? `${planViewAngle}°` : 'view'}</span>
+          </button>
+        </Tooltip>
+
+        <Tooltip content="Rotate plan view +90° (Clockwise)">
+          <button
+            type="button"
+            onClick={() => rotatePlanView(90)}
+            aria-label="Rotate plan view clockwise"
+            className="flex h-6 w-6 items-center justify-center rounded-[4px] text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900 dark:text-ink-300 dark:hover:bg-ink-800 dark:hover:text-white"
+          >
+            <Icon name="rotate" className="h-3.5 w-3.5" />
           </button>
         </Tooltip>
       </div>

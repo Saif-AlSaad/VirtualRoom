@@ -394,6 +394,7 @@ function ProjectCard({
 
   // Load project document synchronously from localStorage for authentic vector blueprint
   const fullProject = useMemo(() => {
+    void updatedAt;
     try {
       return loadProject(id);
     } catch {
