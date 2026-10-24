@@ -11,6 +11,7 @@ import { formatLength, fromDisplay, parseLength, toDisplay, unitLabel } from '@/
 import { Icon } from './Icon';
 import { Button, ColorPicker, EmptyState, IconButton, NumberField, Section, Switch, Tooltip } from './primitives';
 import { RoomPanel } from './RoomPanel';
+import { FurnitureDimensionsEditor } from './FurnitureDimensionsEditor';
 
 /**
  * Right-hand inspector for the current selection.
@@ -434,7 +435,6 @@ function SelectionInspector() {
 
   const catalog = resolveCatalogItem(instance.catalogId);
   const size = instanceSize(instance, catalog);
-  const [minScale, maxScale] = catalog.scaleRange;
   const halfW = doc.room.dimensions.width / 2;
   const halfL = doc.room.dimensions.length / 2;
 
@@ -600,29 +600,20 @@ function SelectionInspector() {
           ))}
         </div>
 
-        {minScale !== maxScale && (
-          <NumberField
-            label="Scale"
-            suffix="%"
-            value={Math.round(instance.scale.x * 100)}
-            min={Math.round(minScale * 100)}
-            max={Math.round(maxScale * 100)}
-            step={1}
-            disabled={instance.locked}
-            format={(v) => String(Math.round(v))}
-            onChange={(v) => {
-              const s = v / 100;
-              livePatch({ scale: { x: s, y: s, z: s } });
-            }}
-            onCommit={(v) => {
-              const s = v / 100;
-              beginGesture('Scale item');
-              livePatch({ scale: { x: s, y: s, z: s } });
-              endGesture();
-            }}
-          />
-        )}
       </Section>
+ 
+      <FurnitureDimensionsEditor
+        instance={instance}
+        catalog={catalog}
+        projectUnit={unit}
+        disabled={instance.locked}
+        onLiveChange={(scale) => livePatch({ scale })}
+        onCommit={(scale, label) => {
+          beginGesture(label);
+          livePatch({ scale });
+          endGesture();
+        }}
+      />
 
       <Section title="Appearance" icon="sparkle">
         {catalog.finishes.length > 1 && (
