@@ -3,14 +3,8 @@ import clsx from 'clsx';
 import { Icon } from './Icon';
 import { useUI } from '@/store/uiStore';
 
-/**
- * On-screen navigation controls for Walkthrough mode.
- *
- * Provides:
- * - Virtual on-screen joystick for movement (forward/back, strafe left/right) on mobile/touch.
- * - Virtual look pad and directional buttons (turn left/right, look up/down, center).
- * - Mouse-look (Pointer Lock API) status indicator and activation button for desktop.
- */
+// ── Walkthrough Controls Component ──────────────────────────────────────
+
 export function WalkControls() {
   const viewMode = useUI((s) => s.viewMode);
   const setViewMode = useUI((s) => s.setViewMode);
@@ -19,11 +13,13 @@ export function WalkControls() {
   const addWalkLookDelta = useUI((s) => s.addWalkLookDelta);
 
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [showTouchControls, setShowTouchControls] = useState(false);
 
   useEffect(() => {
-    setIsTouchDevice(
-      'ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth < 1024
-    );
+    const isTouch =
+      'ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth < 1024;
+    setIsTouchDevice(isTouch);
+    setShowTouchControls(isTouch);
   }, []);
 
   if (viewMode !== 'walk') return null;
@@ -38,60 +34,155 @@ export function WalkControls() {
     }
   };
 
+  const resetPitch = () => {
+    addWalkLookDelta({ yaw: 0, pitch: -999 });
+  };
+
   return (
-    <div className="pointer-events-none absolute inset-0 z-30 flex flex-col justify-between p-4 select-none">
-      {/* Top Walkthrough HUD banner */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="glass pointer-events-auto flex items-center gap-2 rounded-control px-3.5 py-1.5 shadow-medium">
+    <div className="pointer-events-none absolute inset-0 z-30 flex flex-col justify-between p-3.5 select-none sm:p-4">
+      {/* ── Top Walkthrough Navigation Bar ────────────────────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        {/* Left: Status & Pointer Lock */}
+        <div className="glass pointer-events-auto flex items-center gap-2 rounded-panel px-3 py-1.5 shadow-medium">
           <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-caption font-medium text-ink-800 dark:text-sage-100">
+          <span className="text-[12px] font-medium text-ink-800 dark:text-sage-100">
             {pointerLockActive
-              ? 'Mouse Look Active (Press ESC to release)'
+              ? 'Mouse Look Active'
               : isTouchDevice
-                ? 'Walkthrough Mode — Use on-screen controls'
-                : 'Click canvas or press button to enable Mouse Look'}
+                ? 'Walkthrough'
+                : 'Click canvas to look'}
           </span>
           {!isTouchDevice && (
             <button
               type="button"
               onClick={togglePointerLock}
               className={clsx(
-                'ml-1 rounded px-2 py-0.5 text-[11px] font-medium transition-colors',
+                'ml-1 rounded px-2 py-0.5 text-[11px] font-semibold transition-colors',
                 pointerLockActive
                   ? 'bg-sage-600 text-white hover:bg-sage-700'
                   : 'bg-ink-200 text-ink-800 hover:bg-ink-300 dark:bg-ink-800 dark:text-ink-200'
               )}
             >
-              {pointerLockActive ? 'Exit Mouse Look' : 'Enable Mouse Look'}
+              {pointerLockActive ? 'ESC to Unlock' : 'Enable Mouse Look'}
             </button>
           )}
         </div>
 
+        {/* Center: Functional actions (Level View & On-screen toggle) */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={resetPitch}
+            title="Level camera pitch to horizon"
+            className="glass pointer-events-auto flex items-center gap-1.5 rounded-panel px-2.5 py-1.5 text-[12px] font-medium text-ink-700 shadow-medium hover:bg-ink-100 dark:text-sage-200 dark:hover:bg-ink-800"
+          >
+            <Icon name="eye" className="h-3.5 w-3.5" />
+            <span>Level View</span>
+          </button>
+
+          {!isTouchDevice && (
+            <button
+              type="button"
+              onClick={() => setShowTouchControls((v) => !v)}
+              title={showTouchControls ? 'Hide on-screen controls' : 'Show on-screen touch controls'}
+              className={clsx(
+                'glass pointer-events-auto hidden sm:flex items-center gap-1.5 rounded-panel px-2.5 py-1.5 text-[12px] font-medium shadow-medium transition-colors',
+                showTouchControls
+                  ? 'bg-sage-600/20 text-sage-700 dark:text-sage-200 border border-sage-500/30'
+                  : 'text-ink-600 hover:bg-ink-100 dark:text-ink-300 dark:hover:bg-ink-800'
+              )}
+            >
+              <Icon name="joystick" className="h-3.5 w-3.5" />
+              <span>{showTouchControls ? 'Hide Controls' : 'On-Screen D-Pad'}</span>
+            </button>
+          )}
+        </div>
+
+        {/* Right: Exit Walk */}
         <button
           type="button"
           onClick={() => setViewMode('3d')}
-          className="glass pointer-events-auto flex items-center gap-1.5 rounded-control px-3 py-1.5 text-caption font-medium text-ink-700 shadow-medium hover:bg-ink-100 dark:text-sage-200 dark:hover:bg-ink-800"
+          className="glass pointer-events-auto flex items-center gap-1.5 rounded-panel px-3 py-1.5 text-[12px] font-medium text-ink-700 shadow-medium hover:bg-ink-100 dark:text-sage-200 dark:hover:bg-ink-800"
         >
           <Icon name="cube" className="h-4 w-4" />
           <span>Exit Walk</span>
         </button>
       </div>
 
-      {/* Bottom controls: Joystick (Left) and Look Pad / D-Pad (Right) */}
-      <div className="flex items-end justify-between">
-        {/* Movement Joystick */}
-        <VirtualJoystick onChange={setWalkJoystick} />
+      {/* ── Center Reticle (Subtle Visual Orientation) ────────────────── */}
+      <WalkReticle />
 
-        {/* Look Controls: Touch Pad & D-Pad */}
-        <LookControls onLookDelta={addWalkLookDelta} />
+      {/* ── Bottom Section: Floating Keymap or Touch Joysticks ───────── */}
+      <div className="flex items-end justify-between">
+        {/* Movement Joystick (on touch or when toggled) */}
+        {showTouchControls ? (
+          <VirtualJoystick onChange={setWalkJoystick} />
+        ) : (
+          <div className="w-1" />
+        )}
+
+        {/* Desktop floating keymap guide */}
+        {!showTouchControls && !isTouchDevice && (
+          <div className="glass pointer-events-auto flex items-center gap-2.5 rounded-panel px-3.5 py-1.5 shadow-medium text-[11px] text-ink-500 dark:text-ink-300">
+            <span>
+              <kbd className="rounded bg-ink-200/80 px-1 py-0.5 font-mono text-[10px] font-semibold text-ink-800 dark:bg-ink-800 dark:text-sage-200">
+                WASD
+              </kbd>{' '}
+              Move
+            </span>
+            <span>·</span>
+            <span>
+              <kbd className="rounded bg-ink-200/80 px-1 py-0.5 font-mono text-[10px] font-semibold text-ink-800 dark:bg-ink-800 dark:text-sage-200">
+                Shift
+              </kbd>{' '}
+              Run
+            </span>
+            <span>·</span>
+            <span>
+              <kbd className="rounded bg-ink-200/80 px-1 py-0.5 font-mono text-[10px] font-semibold text-ink-800 dark:bg-ink-800 dark:text-sage-200">
+                Q / E
+              </kbd>{' '}
+              Turn
+            </span>
+            <span>·</span>
+            <span>
+              <kbd className="rounded bg-ink-200/80 px-1 py-0.5 font-mono text-[10px] font-semibold text-ink-800 dark:bg-ink-800 dark:text-sage-200">
+                R / F
+              </kbd>{' '}
+              Tilt
+            </span>
+          </div>
+        )}
+
+        {/* Look Controls: Touch Pad & D-Pad (on touch or when toggled) */}
+        {showTouchControls ? (
+          <LookControls onLookDelta={addWalkLookDelta} />
+        ) : (
+          <div className="w-1" />
+        )}
       </div>
     </div>
   );
 }
 
-/**
- * Touch-friendly 2D analog thumbstick for walking.
- */
+// ── Subtle Center Reticle ────────────────────────────────────────────────
+
+function WalkReticle() {
+  return (
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+      <div className="relative flex items-center justify-center opacity-60">
+        <div className="h-1.5 w-1.5 rounded-full bg-white shadow-sm" />
+        <div className="absolute -left-3 h-px w-1.5 bg-white/50" />
+        <div className="absolute -right-3 h-px w-1.5 bg-white/50" />
+        <div className="absolute -top-3 h-1.5 w-px bg-white/50" />
+        <div className="absolute -bottom-3 h-1.5 w-px bg-white/50" />
+      </div>
+    </div>
+  );
+}
+
+// ── Virtual Joystick for Walking ─────────────────────────────────────────
+
 function VirtualJoystick({
   onChange,
 }: {
@@ -101,7 +192,7 @@ function VirtualJoystick({
   const [active, setActive] = useState(false);
   const [knobPos, setKnobPos] = useState({ x: 0, y: 0 });
 
-  const RADIUS = 48;
+  const RADIUS = 44;
 
   const updateFromPointer = useCallback(
     (clientX: number, clientY: number) => {
@@ -122,7 +213,6 @@ function VirtualJoystick({
 
       setKnobPos({ x, y });
 
-      // In three.js walk coords: dy < 0 is forward, dx > 0 is strafe right
       const forward = -y / RADIUS;
       const strafe = x / RADIUS;
       onChange({ forward, strafe });
@@ -159,21 +249,19 @@ function VirtualJoystick({
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         className={clsx(
-          'relative flex h-32 w-32 items-center justify-center rounded-full border-2',
+          'relative flex h-28 w-28 items-center justify-center rounded-full border-2',
           'touch-none backdrop-blur-md transition-colors',
           active
             ? 'border-sage-400 bg-sage-950/40 shadow-glow'
             : 'border-white/30 bg-ink-950/30 shadow-medium'
         )}
       >
-        {/* Center Crosshair / Direction Lines */}
         <div className="absolute h-full w-px bg-white/15" />
         <div className="absolute h-px w-full bg-white/15" />
 
-        {/* Draggable Knob */}
         <div
           className={clsx(
-            'flex h-14 w-14 items-center justify-center rounded-full border shadow-lg',
+            'flex h-12 w-12 items-center justify-center rounded-full border shadow-lg',
             'transition-transform duration-75',
             active
               ? 'border-sage-300 bg-sage-600 text-white scale-105'
@@ -183,19 +271,18 @@ function VirtualJoystick({
             transform: `translate(${knobPos.x}px, ${knobPos.y}px)`,
           }}
         >
-          <Icon name="joystick" className="h-6 w-6 opacity-75" />
+          <Icon name="joystick" className="h-5 w-5 opacity-75" />
         </div>
       </div>
-      <span className="text-[11px] font-medium text-ink-400 dark:text-ink-300">
+      <span className="text-[10px] font-medium text-ink-400 dark:text-ink-300">
         Move / Strafe
       </span>
     </div>
   );
 }
 
-/**
- * Touch Lookpad and D-pad for tilting and turning the first-person camera.
- */
+// ── Touch Lookpad and D-pad ──────────────────────────────────────────────
+
 function LookControls({
   onLookDelta,
 }: {
@@ -229,29 +316,31 @@ function LookControls({
     onLookDelta({ yaw: yawDeg * toRad, pitch: pitchDeg * toRad });
   };
 
+  const levelLook = () => {
+    onLookDelta({ yaw: 0, pitch: -999 });
+  };
+
   return (
     <div className="pointer-events-auto flex flex-col items-end gap-2">
-      {/* Touch swipe zone for look */}
       <div
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        className="flex h-24 w-32 flex-col items-center justify-center rounded-panel border border-white/20 bg-ink-950/30 p-2 text-center backdrop-blur-md shadow-medium touch-none"
+        className="flex h-20 w-28 flex-col items-center justify-center rounded-panel border border-white/20 bg-ink-950/30 p-2 text-center backdrop-blur-md shadow-medium touch-none"
       >
-        <Icon name="touch" className="h-5 w-5 text-sage-300 opacity-80" />
-        <span className="mt-1 text-[11px] font-medium text-white/80">
+        <Icon name="touch" className="h-4 w-4 text-sage-300 opacity-80" />
+        <span className="mt-1 text-[10px] font-medium text-white/80">
           Swipe to look
         </span>
       </div>
 
-      {/* Quick Look Direction Buttons */}
-      <div className="grid grid-cols-3 gap-1 rounded-control bg-ink-950/40 p-1.5 backdrop-blur-md shadow-medium">
+      <div className="grid grid-cols-3 gap-1 rounded-control bg-ink-950/40 p-1 backdrop-blur-md shadow-medium">
         <span />
         <button
           type="button"
           onClick={() => stepLook(0, 8)}
           aria-label="Look up"
-          className="flex h-8 w-8 items-center justify-center rounded bg-white/10 text-white hover:bg-white/20 active:bg-sage-600"
+          className="flex h-7 w-7 items-center justify-center rounded bg-white/10 text-[10px] text-white hover:bg-white/20 active:bg-sage-600"
         >
           ▲
         </button>
@@ -260,15 +349,16 @@ function LookControls({
           type="button"
           onClick={() => stepLook(12, 0)}
           aria-label="Turn left"
-          className="flex h-8 w-8 items-center justify-center rounded bg-white/10 text-white hover:bg-white/20 active:bg-sage-600"
+          className="flex h-7 w-7 items-center justify-center rounded bg-white/10 text-[10px] text-white hover:bg-white/20 active:bg-sage-600"
         >
           ◀
         </button>
         <button
           type="button"
-          onClick={() => onLookDelta({ yaw: 0, pitch: -0 })}
-          aria-label="Center view"
-          className="flex h-8 w-8 items-center justify-center rounded bg-white/10 text-caption font-bold text-sage-300 hover:bg-white/20"
+          onClick={levelLook}
+          aria-label="Level view to horizon"
+          title="Level view"
+          className="flex h-7 w-7 items-center justify-center rounded bg-white/10 text-[10px] font-bold text-sage-300 hover:bg-white/20 active:bg-sage-600"
         >
           ●
         </button>
@@ -276,7 +366,7 @@ function LookControls({
           type="button"
           onClick={() => stepLook(-12, 0)}
           aria-label="Turn right"
-          className="flex h-8 w-8 items-center justify-center rounded bg-white/10 text-white hover:bg-white/20 active:bg-sage-600"
+          className="flex h-7 w-7 items-center justify-center rounded bg-white/10 text-[10px] text-white hover:bg-white/20 active:bg-sage-600"
         >
           ▶
         </button>
@@ -285,7 +375,7 @@ function LookControls({
           type="button"
           onClick={() => stepLook(0, -8)}
           aria-label="Look down"
-          className="flex h-8 w-8 items-center justify-center rounded bg-white/10 text-white hover:bg-white/20 active:bg-sage-600"
+          className="flex h-7 w-7 items-center justify-center rounded bg-white/10 text-[10px] text-white hover:bg-white/20 active:bg-sage-600"
         >
           ▼
         </button>

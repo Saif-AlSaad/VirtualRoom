@@ -642,14 +642,6 @@ export function ViewportControls() {
             {Math.round(lightIntensity * 100)}%
           </span>
         </div>
-
-        {viewMode === 'walk' && (
-          <div className="glass rounded-panel px-3 py-2 text-[11px] text-ink-500 shadow-subtle dark:text-ink-400">
-            <strong className="font-semibold text-ink-700 dark:text-ink-200">Walkthrough</strong>
-            <br />
-            W/A/S/D to move · Q/E or ←/→ to turn · Shift to run
-          </div>
-        )}
       </div>
     </>
   );
