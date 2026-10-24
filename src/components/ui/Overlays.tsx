@@ -7,8 +7,8 @@ import { useUI } from '@/store/uiStore';
 import { resolveCatalogItem } from '@/data/catalog';
 import { instanceRect } from '@/utils/placement';
 import { rectCorners } from '@/utils/collision';
-import { Icon } from './Icon';
-import { IconButton, Switch, Tooltip } from './primitives';
+import { Icon, type IconName } from './Icon';
+import { IconButton, Tooltip } from './primitives';
 
 /**
  * Floating viewport overlays: contextual toolbar, minimap, camera presets and
@@ -400,6 +400,82 @@ const PRESETS: Array<{ value: CameraPreset; label: string }> = [
   { value: 'top', label: 'Top' },
 ];
 
+// ── Fidelity Tool Row Component ──────────────────────────────────────────
+
+function FidelityToolRow({
+  icon,
+  label,
+  badge,
+  tooltip,
+  checked,
+  onChange,
+  children,
+}: {
+  icon: IconName;
+  label: string;
+  badge?: string;
+  tooltip: string;
+  checked: boolean;
+  onChange: (val: boolean) => void;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div
+      title={tooltip}
+      className={clsx(
+        'group flex flex-col gap-1.5 rounded-control p-2 transition-colors duration-150',
+        checked
+          ? 'bg-ink-100/70 border border-ink-200/50 dark:bg-ink-800/60 dark:border-ink-700/50'
+          : 'hover:bg-ink-100/40 dark:hover:bg-ink-800/30'
+      )}
+    >
+      <div className="flex items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <div
+            className={clsx(
+              'flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] transition-colors',
+              checked
+                ? 'bg-sage-600/15 text-sage-600 dark:bg-sage-500/20 dark:text-sage-300'
+                : 'bg-ink-200/60 text-ink-400 dark:bg-ink-800/90 dark:text-ink-500'
+            )}
+          >
+            <Icon name={icon} className="h-3.5 w-3.5" />
+          </div>
+          <span className="truncate text-[12px] font-medium text-ink-800 dark:text-ink-200">
+            {label}
+          </span>
+          {badge && (
+            <span className="rounded bg-ink-200/60 px-1 py-0.5 text-[9px] font-semibold text-ink-500 dark:bg-ink-700/60 dark:text-ink-300">
+              {badge}
+            </span>
+          )}
+        </div>
+
+        <button
+          type="button"
+          role="switch"
+          aria-checked={checked}
+          aria-label={label}
+          onClick={() => onChange(!checked)}
+          className={clsx(
+            'relative h-4.5 w-8 shrink-0 rounded-full transition-colors duration-150 ease-out focus:outline-none',
+            checked ? 'bg-sage-600' : 'bg-ink-300 dark:bg-ink-700'
+          )}
+        >
+          <span
+            className={clsx(
+              'absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-subtle transition-transform duration-150 ease-out',
+              checked ? 'translate-x-[15px]' : 'translate-x-0.5'
+            )}
+          />
+        </button>
+      </div>
+
+      {checked && children && <div className="mt-0.5 pl-8 pr-1">{children}</div>}
+    </div>
+  );
+}
+
 export function ViewportControls() {
   const cameraPreset = useUI((s) => s.cameraPreset);
   const setCameraPreset = useUI((s) => s.setCameraPreset);
@@ -473,20 +549,23 @@ export function ViewportControls() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 4, scale: 0.98 }}
                   transition={{ duration: 0.15 }}
-                  className="glass absolute right-0 top-full z-40 mt-2 w-72 rounded-panel border border-ink-200/90 bg-white/95 p-3.5 shadow-elevated backdrop-blur-md dark:border-ink-700/90 dark:bg-ink-900/95"
+                  className="glass absolute right-0 top-full z-40 mt-2 w-80 rounded-panel border border-ink-200/90 bg-white/95 p-3 shadow-elevated backdrop-blur-md dark:border-ink-700/90 dark:bg-ink-900/95"
                 >
-                  <div className="mb-3 flex items-center justify-between border-b border-ink-200 pb-2.5 dark:border-ink-800">
-                    <div className="flex items-center gap-1.5">
-                      <Icon name="sparkle" className="h-4 w-4 text-sage-600 dark:text-sage-400" />
-                      <span className="text-caption font-semibold text-ink-900 dark:text-sage-50">
+                  {/* Header */}
+                  <div className="mb-2.5 flex items-center justify-between border-b border-ink-200 pb-2 dark:border-ink-800">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-5 w-5 items-center justify-center rounded bg-sage-600/10 text-sage-600 dark:bg-sage-500/20 dark:text-sage-400">
+                        <Icon name="sparkle" className="h-3.5 w-3.5" />
+                      </div>
+                      <span className="text-[12px] font-semibold text-ink-900 dark:text-sage-50">
                         Studio Visual Fidelity
                       </span>
                     </div>
                     <span
                       className={clsx(
-                        'rounded-full px-1.5 py-0.5 text-[10px] font-medium',
+                        'rounded-full px-2 py-0.5 text-[9.5px] font-medium tracking-wide',
                         postFx.enabled && quality !== 'performance'
-                          ? 'bg-sage-600/10 text-sage-700 dark:bg-sage-500/20 dark:text-sage-300'
+                          ? 'bg-sage-600/15 text-sage-700 dark:bg-sage-500/25 dark:text-sage-300'
                           : 'bg-ink-200/50 text-ink-500 dark:bg-ink-800 dark:text-ink-400'
                       )}
                     >
@@ -499,91 +578,197 @@ export function ViewportControls() {
                   </div>
 
                   {quality === 'performance' && (
-                    <div className="mb-3 rounded-control bg-warn/10 p-2 text-[11px] leading-snug text-warn">
-                      Rendering quality is set to Fast. Set to Balanced or High in About & diagnostics to enable post-processing.
+                    <div className="mb-2.5 rounded-control bg-warn/10 p-2 text-[11px] leading-snug text-warn">
+                      Rendering quality is set to Fast. Set to Balanced or High in diagnostics to enable post-processing.
                     </div>
                   )}
 
-                  <div className="flex flex-col gap-3 text-caption">
-                    <Switch
-                      label="Studio Post-Processing"
-                      description="Master switch for photorealistic camera passes"
-                      checked={postFx.enabled}
-                      onChange={(enabled) => setPostFx({ enabled })}
-                    />
-
-                    {postFx.enabled && quality !== 'performance' && (
-                      <div className="flex flex-col gap-2.5 border-t border-ink-200/60 pt-2.5 dark:border-ink-800/60">
-                        <Switch
-                          label="Ambient Occlusion (SSAO)"
-                          description="Grounds furniture & corners with contact shadows"
-                          checked={postFx.ssao}
-                          onChange={(ssao) => setPostFx({ ssao })}
-                        />
-
-                        {postFx.ssao && (
-                          <div className="flex items-center justify-between pl-1">
-                            <span className="text-[11px] text-ink-500 dark:text-ink-400">AO Strength</span>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="range"
-                                min={0.5}
-                                max={2.5}
-                                step={0.1}
-                                value={postFx.aoIntensity}
-                                onChange={(e) => setPostFx({ aoIntensity: Number(e.target.value) })}
-                                className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-ink-200 accent-sage-600 dark:bg-ink-700"
-                              />
-                              <span className="w-6 text-right text-[10px] tabular-nums text-ink-400">
-                                {postFx.aoIntensity.toFixed(1)}x
-                              </span>
-                            </div>
-                          </div>
-                        )}
-
-                        <Switch
-                          label="Studio Reflections (PBR)"
-                          description="Physically-based radiance on glossy & metallic surfaces"
-                          checked={postFx.reflections}
-                          onChange={(reflections) => setPostFx({ reflections })}
-                        />
-
-                        <Switch
-                          label="Architectural Bloom"
-                          description="Soft light spill on windows & glowing lamps"
-                          checked={postFx.bloom}
-                          onChange={(bloom) => setPostFx({ bloom })}
-                        />
-
-                        {postFx.bloom && (
-                          <div className="flex items-center justify-between pl-1">
-                            <span className="text-[11px] text-ink-500 dark:text-ink-400">Bloom Glow</span>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="range"
-                                min={0.1}
-                                max={1.5}
-                                step={0.05}
-                                value={postFx.bloomIntensity}
-                                onChange={(e) => setPostFx({ bloomIntensity: Number(e.target.value) })}
-                                className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-ink-200 accent-sage-600 dark:bg-ink-700"
-                              />
-                              <span className="w-6 text-right text-[10px] tabular-nums text-ink-400">
-                                {postFx.bloomIntensity.toFixed(2)}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-
-                        <Switch
-                          label="Cinematic Vignette"
-                          description="Subtle camera lens edge falloff"
-                          checked={postFx.vignette}
-                          onChange={(vignette) => setPostFx({ vignette })}
-                        />
-                      </div>
+                  {/* Master Post-Processing Engine Card */}
+                  <div
+                    title="Master switch for photorealistic camera and shader passes"
+                    className={clsx(
+                      'mb-2 flex items-center justify-between rounded-control p-2.5 transition-colors',
+                      postFx.enabled && quality !== 'performance'
+                        ? 'bg-sage-600/10 border border-sage-500/20 dark:bg-sage-950/40'
+                        : 'bg-ink-100/60 dark:bg-ink-800/40'
                     )}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className={clsx(
+                          'flex h-7 w-7 items-center justify-center rounded-[7px] transition-colors',
+                          postFx.enabled && quality !== 'performance'
+                            ? 'bg-sage-600 text-white shadow-glow'
+                            : 'bg-ink-200 text-ink-500 dark:bg-ink-700 dark:text-ink-400'
+                        )}
+                      >
+                        <Icon name="sparkle" className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="text-[12px] font-semibold text-ink-900 dark:text-sage-100">
+                          Post-Processing Engine
+                        </div>
+                        <div className="text-[10px] text-ink-400">
+                          {postFx.enabled && quality !== 'performance'
+                            ? 'Real-time shaders active'
+                            : 'Passes bypassed'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={postFx.enabled}
+                      aria-label="Toggle Post-Processing Engine"
+                      onClick={() => setPostFx({ enabled: !postFx.enabled })}
+                      className={clsx(
+                        'relative h-5 w-9 shrink-0 rounded-full transition-colors duration-150 ease-out focus:outline-none',
+                        postFx.enabled ? 'bg-sage-600' : 'bg-ink-300 dark:bg-ink-700'
+                      )}
+                    >
+                      <span
+                        className={clsx(
+                          'absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-subtle transition-transform duration-150 ease-out',
+                          postFx.enabled ? 'translate-x-[18px]' : 'translate-x-0.5'
+                        )}
+                      />
+                    </button>
                   </div>
+
+                  {/* Individual Passes List */}
+                  {postFx.enabled && quality !== 'performance' && (
+                    <div className="flex flex-col gap-1 border-t border-ink-200/60 pt-2 dark:border-ink-800/60">
+                      {/* SSAO */}
+                      <FidelityToolRow
+                        icon="shadow"
+                        label="Ambient Occlusion"
+                        badge="SSAO"
+                        tooltip="Grounds furniture & corners with soft contact shadows"
+                        checked={postFx.ssao}
+                        onChange={(ssao) => setPostFx({ ssao })}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Icon name="shadow" className="h-3 w-3 text-ink-400 shrink-0" />
+                          <input
+                            type="range"
+                            min={0.5}
+                            max={2.5}
+                            step={0.1}
+                            value={postFx.aoIntensity}
+                            onChange={(e) => setPostFx({ aoIntensity: Number(e.target.value) })}
+                            aria-label="Ambient Occlusion Intensity"
+                            className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-ink-200 accent-sage-600 dark:bg-ink-700"
+                          />
+                          <span className="w-8 text-right font-mono text-[10px] tabular-nums font-semibold text-sage-600 dark:text-sage-400">
+                            {postFx.aoIntensity.toFixed(1)}×
+                          </span>
+                        </div>
+                      </FidelityToolRow>
+
+                      {/* Reflections */}
+                      <FidelityToolRow
+                        icon="reflections"
+                        label="Surface Reflections"
+                        badge="PBR"
+                        tooltip="Physically-based radiance on glossy & metallic finishes"
+                        checked={postFx.reflections}
+                        onChange={(reflections) => setPostFx({ reflections })}
+                      />
+
+                      {/* Bloom */}
+                      <FidelityToolRow
+                        icon="bloom"
+                        label="Architectural Bloom"
+                        badge="Glow"
+                        tooltip="Soft light diffusion on lamps & daylight openings"
+                        checked={postFx.bloom}
+                        onChange={(bloom) => setPostFx({ bloom })}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Icon name="sun" className="h-3 w-3 text-ink-400 shrink-0" />
+                          <input
+                            type="range"
+                            min={0.1}
+                            max={1.5}
+                            step={0.05}
+                            value={postFx.bloomIntensity}
+                            onChange={(e) => setPostFx({ bloomIntensity: Number(e.target.value) })}
+                            aria-label="Bloom Intensity"
+                            className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-ink-200 accent-sage-600 dark:bg-ink-700"
+                          />
+                          <span className="w-8 text-right font-mono text-[10px] tabular-nums font-semibold text-sage-600 dark:text-sage-400">
+                            {postFx.bloomIntensity.toFixed(2)}
+                          </span>
+                        </div>
+                      </FidelityToolRow>
+
+                      {/* Vignette */}
+                      <FidelityToolRow
+                        icon="vignette"
+                        label="Lens Vignette"
+                        badge="Optics"
+                        tooltip="Subtle camera lens edge falloff to frame room perspectives"
+                        checked={postFx.vignette}
+                        onChange={(vignette) => setPostFx({ vignette })}
+                      />
+
+                      {/* Quick Presets Bar */}
+                      <div className="mt-1 flex items-center justify-between border-t border-ink-200/50 pt-2 dark:border-ink-800/50 text-[10px]">
+                        <span className="font-medium text-ink-400 flex items-center gap-1">
+                          <Icon name="adjust" className="h-3 w-3 text-ink-400" />
+                          <span>Presets:</span>
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPostFx({
+                                ssao: true,
+                                reflections: true,
+                                bloom: true,
+                                vignette: true,
+                                aoIntensity: 1.5,
+                                bloomIntensity: 0.45,
+                              })
+                            }
+                            className="rounded px-1.5 py-0.5 font-medium text-ink-600 hover:bg-ink-100 hover:text-ink-900 dark:text-ink-300 dark:hover:bg-ink-800 dark:hover:text-white"
+                          >
+                            Studio
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPostFx({
+                                ssao: true,
+                                reflections: true,
+                                bloom: false,
+                                vignette: false,
+                                aoIntensity: 1.2,
+                              })
+                            }
+                            className="rounded px-1.5 py-0.5 font-medium text-ink-600 hover:bg-ink-100 hover:text-ink-900 dark:text-ink-300 dark:hover:bg-ink-800 dark:hover:text-white"
+                          >
+                            Subtle
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPostFx({
+                                ssao: false,
+                                reflections: false,
+                                bloom: false,
+                                vignette: false,
+                              })
+                            }
+                            className="rounded px-1.5 py-0.5 font-medium text-ink-400 hover:bg-ink-100 hover:text-ink-600 dark:text-ink-500 dark:hover:bg-ink-800 dark:hover:text-ink-300"
+                          >
+                            All Off
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

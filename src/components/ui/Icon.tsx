@@ -60,7 +60,12 @@ export type IconName =
   | 'palette'
   | 'dropper'
   | 'link'
-  | 'unlink';
+  | 'unlink'
+  | 'shadow'
+  | 'reflections'
+  | 'bloom'
+  | 'vignette'
+  | 'adjust';
 
 const PATHS: Record<IconName, string> = {
   plus: 'M12 5v14M5 12h14',
@@ -118,6 +123,11 @@ const PATHS: Record<IconName, string> = {
   dropper: 'm14 7 3 3m-4-5-8.5 8.5a2.1 2.1 0 0 0-.6 1.5V18h3a2.1 2.1 0 0 0 1.5-.6L17 10l-4-5zM4 20h.01',
   link: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71',
   unlink: 'm18.84 12.25 1.72-1.71a5 5 0 0 0-7.07-7.07l-1.72 1.71M5.16 11.75l-1.72 1.71a5 5 0 0 0 7.07 7.07l1.71-1.71M2 2l20 20',
+  shadow: 'M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM3 19c1.5-1.5 5-2 9-2s7.5.5 9 2-4 2-9 2-7.5-.5-9-2z',
+  reflections: 'M3 13h18M5 8l4 4 6-6 4 4M5 18l4-4 6 6 4-4',
+  bloom: 'M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1M5.6 18.4l2.1-2.1m8.6-8.6 2.1-2.1M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z',
+  vignette: 'M3 3h18v18H3zM3 8a5 5 0 0 1 5-5M21 8a5 5 0 0 0-5-5M3 16a5 5 0 0 0 5 5M21 16a5 5 0 0 1-5 5',
+  adjust: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
 };
 
 interface Props {
