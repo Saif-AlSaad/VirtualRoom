@@ -22,27 +22,37 @@ import {
   parseLength,
   toDisplay,
   unitLabel,
+  M_PER_IN,
+  M_PER_FT,
 } from '@/utils/units';
 import { formatCurrency } from '@/utils/exporters';
 import { Icon } from './Icon';
 import { Button, ColorPicker, IconButton, Section, Segmented, Switch } from './primitives';
 
+export interface RoomPreset {
+  name: string;
+  label: string;
+  areaLabel: string;
+  w: number;
+  l: number;
+}
+
 /**
- * Architectural room presets by unit system.
+ * Architectural room presets by unit system with archetype classifications.
  */
-const getPresets = (unit: Unit) =>
+const getPresets = (unit: Unit): RoomPreset[] =>
   unit === 'm'
     ? [
-        { label: '3 × 3 m', w: 3.0, l: 3.0 },
-        { label: '4 × 4.5 m', w: 4.0, l: 4.5 },
-        { label: '5 × 6 m', w: 5.0, l: 6.0 },
-        { label: '6 × 8 m', w: 6.0, l: 8.0 },
+        { name: 'Studio', label: '3.0 × 3.0 m', areaLabel: '9.0 m²', w: 3.0, l: 3.0 },
+        { name: 'Bedroom', label: '4.0 × 4.5 m', areaLabel: '18.0 m²', w: 4.0, l: 4.5 },
+        { name: 'Living', label: '5.0 × 6.0 m', areaLabel: '30.0 m²', w: 5.0, l: 6.0 },
+        { name: 'Great Room', label: '6.0 × 8.0 m', areaLabel: '48.0 m²', w: 6.0, l: 8.0 },
       ]
     : [
-        { label: '10 × 10 ft', w: 3.048, l: 3.048 },
-        { label: '12 × 14 ft', w: 3.658, l: 4.267 },
-        { label: '15 × 18 ft', w: 4.572, l: 5.486 },
-        { label: '18 × 24 ft', w: 5.486, l: 7.315 },
+        { name: 'Studio', label: '10 × 10 ft', areaLabel: '100 ft²', w: 3.048, l: 3.048 },
+        { name: 'Bedroom', label: '12 × 14 ft', areaLabel: '168 ft²', w: 3.658, l: 4.267 },
+        { name: 'Living', label: '15 × 18 ft', areaLabel: '270 ft²', w: 4.572, l: 5.486 },
+        { name: 'Great Room', label: '18 × 24 ft', areaLabel: '432 ft²', w: 5.486, l: 7.315 },
       ];
 
 /**
@@ -51,23 +61,27 @@ const getPresets = (unit: Unit) =>
 function CompactDimensionField({
   label,
   badge,
+  badgeColor = 'sage',
   value,
   min,
   max,
   step = 0.01,
   suffix,
   unit,
+  secondary,
   onChange,
   onCommit,
 }: {
   label: string;
   badge?: string;
+  badgeColor?: 'sage' | 'sky' | 'amber' | 'indigo';
   value: number;
   min: number;
   max: number;
   step?: number;
   suffix?: string;
   unit: Unit;
+  secondary?: string;
   onChange: (val: number) => void;
   onCommit?: (val: number) => void;
 }) {
@@ -87,22 +101,41 @@ function CompactDimensionField({
     setText(null);
   };
 
+  const badgeStyles = {
+    sage: 'bg-sage-500/15 text-sage-700 dark:bg-sage-500/25 dark:text-sage-300',
+    sky: 'bg-sky-500/15 text-sky-700 dark:bg-sky-500/25 dark:text-sky-300',
+    amber: 'bg-amber-500/15 text-amber-700 dark:bg-amber-500/25 dark:text-amber-300',
+    indigo: 'bg-indigo-500/15 text-indigo-700 dark:bg-indigo-500/25 dark:text-indigo-300',
+  };
+
   return (
-    <div className="flex flex-col gap-1.5 rounded-control border border-ink-200/80 bg-ink-50/50 p-2.5 transition-all focus-within:border-sage-500 focus-within:bg-white focus-within:ring-1 focus-within:ring-sage-500/20 dark:border-ink-700/60 dark:bg-ink-800/30 dark:focus-within:border-sage-500 dark:focus-within:bg-ink-850">
+    <div className="flex flex-col gap-2 rounded-control border border-ink-200/90 bg-white/70 p-2.5 transition-all duration-150 focus-within:border-sage-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-sage-500/20 dark:border-ink-700/70 dark:bg-ink-800/40 dark:focus-within:border-sage-500 dark:focus-within:bg-ink-850 shadow-subtle">
       <div className="flex items-center justify-between text-[11px]">
-        <span className="flex items-center gap-1.5 font-medium text-ink-600 dark:text-ink-300">
+        <span className="flex items-center gap-1.5 font-semibold text-ink-700 dark:text-sage-100">
           {badge && (
-            <span className="flex h-4 w-4 items-center justify-center rounded bg-ink-200/70 text-[9px] font-bold text-ink-700 dark:bg-ink-700 dark:text-sage-200">
+            <span
+              className={clsx(
+                'flex h-4 w-4 items-center justify-center rounded font-bold text-[9px] shadow-subtle',
+                badgeStyles[badgeColor]
+              )}
+            >
               {badge}
             </span>
           )}
           {label}
         </span>
-        <span className="text-[10px] font-medium tabular-nums text-ink-400">
-          {suffix ?? unitLabel(unit)}
-        </span>
+        {secondary ? (
+          <span className="text-[10px] font-mono text-ink-400 dark:text-ink-500">
+            {secondary}
+          </span>
+        ) : (
+          <span className="text-[10px] font-medium tabular-nums text-ink-400">
+            {suffix ?? unitLabel(unit)}
+          </span>
+        )}
       </div>
-      <div className="relative">
+
+      <div className="relative flex items-center">
         <input
           type="text"
           inputMode="decimal"
@@ -117,22 +150,155 @@ function CompactDimensionField({
             }
             e.stopPropagation();
           }}
-          className="h-7 w-full rounded border border-ink-200 bg-white px-2 text-caption font-medium tabular-nums text-ink-900 transition-colors focus:border-sage-500 focus:outline-none dark:border-ink-700 dark:bg-ink-900 dark:text-sage-50"
+          className="h-7.5 w-full rounded border border-ink-200 bg-white px-2.5 text-caption font-semibold tabular-nums text-ink-900 transition-colors focus:border-sage-500 focus:outline-none dark:border-ink-700 dark:bg-ink-900 dark:text-sage-50"
+        />
+        <span className="pointer-events-none absolute right-2 text-[10px] font-semibold uppercase text-ink-400 dark:text-ink-500">
+          {suffix ?? unitLabel(unit)}
+        </span>
+      </div>
+
+      <div className="pt-0.5">
+        <input
+          type="range"
+          min={displayMin}
+          max={displayMax}
+          step={step}
+          value={display}
+          onChange={(e) => {
+            const val = Number(e.target.value);
+            onChange(fromDisplay(val, unit));
+          }}
+          onPointerUp={() => onCommit?.(value)}
+          className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-ink-200 accent-sage-600 transition-opacity hover:opacity-100 dark:bg-ink-700"
         />
       </div>
-      <input
-        type="range"
-        min={displayMin}
-        max={displayMax}
-        step={step}
-        value={display}
-        onChange={(e) => {
-          const val = Number(e.target.value);
-          onChange(fromDisplay(val, unit));
-        }}
-        onPointerUp={() => onCommit?.(value)}
-        className="h-1 w-full cursor-pointer appearance-none rounded-full bg-ink-200 accent-sage-600 transition-opacity hover:opacity-100 dark:bg-ink-700"
-      />
+    </div>
+  );
+}
+
+/**
+ * Intelligent wall thickness control presenting inches in imperial and cm in metric.
+ */
+function WallThicknessControl({
+  thickness,
+  unit,
+  onChange,
+}: {
+  thickness: number;
+  unit: Unit;
+  onChange: (metres: number) => void;
+}) {
+  const [text, setText] = useState<string | null>(null);
+
+  const isFt = unit === 'ft';
+  const displayVal = isFt ? thickness / M_PER_IN : thickness * 100;
+  const minVal = isFt ? 2.5 : 6;
+  const maxVal = isFt ? 14 : 35;
+  const step = isFt ? 0.25 : 1;
+  const suffix = isFt ? 'in' : 'cm';
+  const secondary = isFt
+    ? `≈ ${(thickness * 100).toFixed(0)} cm`
+    : `≈ ${(thickness / M_PER_IN).toFixed(1)}″`;
+
+  const commitText = () => {
+    if (text === null) return;
+    const raw = Number(text);
+    if (Number.isFinite(raw) && raw > 0) {
+      const metres = isFt ? raw * M_PER_IN : raw / 100;
+      const clamped = Math.max(
+        ROOM_LIMITS.minWallThickness,
+        Math.min(ROOM_LIMITS.maxWallThickness, metres)
+      );
+      onChange(clamped);
+    }
+    setText(null);
+  };
+
+  const presets = isFt
+    ? [
+        { label: '4.5″ Stud', m: 0.1143 },
+        { label: '6″ Ext', m: 0.1524 },
+        { label: '8″ Block', m: 0.2032 },
+      ]
+    : [
+        { label: '10 cm', m: 0.10 },
+        { label: '12 cm', m: 0.12 },
+        { label: '15 cm', m: 0.15 },
+        { label: '20 cm', m: 0.20 },
+      ];
+
+  return (
+    <div className="flex flex-col gap-2 rounded-control border border-ink-200/90 bg-white/70 p-2.5 transition-all duration-150 focus-within:border-sage-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-sage-500/20 dark:border-ink-700/70 dark:bg-ink-800/40 dark:focus-within:border-sage-500 dark:focus-within:bg-ink-850 shadow-subtle">
+      <div className="flex items-center justify-between text-[11px]">
+        <span className="flex items-center gap-1.5 font-semibold text-ink-700 dark:text-sage-100">
+          <span className="flex h-4 w-4 items-center justify-center rounded font-bold text-[9px] bg-amber-500/15 text-amber-700 dark:bg-amber-500/25 dark:text-amber-300 shadow-subtle">
+            T
+          </span>
+          Thickness
+        </span>
+        <span className="text-[10px] font-mono text-ink-400 dark:text-ink-500">
+          {secondary}
+        </span>
+      </div>
+
+      <div className="relative flex items-center">
+        <input
+          type="text"
+          inputMode="decimal"
+          value={text ?? displayVal.toFixed(1)}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={commitText}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.currentTarget.blur();
+            if (e.key === 'Escape') {
+              setText(null);
+              e.currentTarget.blur();
+            }
+            e.stopPropagation();
+          }}
+          className="h-7.5 w-full rounded border border-ink-200 bg-white px-2.5 text-caption font-semibold tabular-nums text-ink-900 transition-colors focus:border-sage-500 focus:outline-none dark:border-ink-700 dark:bg-ink-900 dark:text-sage-50"
+        />
+        <span className="pointer-events-none absolute right-2 text-[10px] font-semibold uppercase text-ink-400 dark:text-ink-500">
+          {suffix}
+        </span>
+      </div>
+
+      <div className="pt-0.5">
+        <input
+          type="range"
+          min={minVal}
+          max={maxVal}
+          step={step}
+          value={displayVal}
+          onChange={(e) => {
+            const raw = Number(e.target.value);
+            const metres = isFt ? raw * M_PER_IN : raw / 100;
+            onChange(metres);
+          }}
+          className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-ink-200 accent-sage-600 transition-opacity hover:opacity-100 dark:bg-ink-700"
+        />
+      </div>
+
+      <div className="flex gap-1 pt-0.5">
+        {presets.map((p) => {
+          const active = Math.abs(thickness - p.m) < 0.015;
+          return (
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => onChange(p.m)}
+              className={clsx(
+                'flex-1 rounded border py-0.5 text-[9.5px] font-medium transition-colors',
+                active
+                  ? 'border-sage-500 bg-sage-50 text-sage-800 dark:bg-sage-950/60 dark:text-sage-200 font-semibold shadow-subtle'
+                  : 'border-ink-200/80 bg-white/80 text-ink-600 hover:border-sage-400 hover:text-sage-700 dark:border-ink-700/80 dark:bg-ink-800/60 dark:text-ink-300'
+              )}
+            >
+              {p.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -231,35 +397,32 @@ function OpeningCard({
             <div className="flex flex-col gap-3 bg-ink-50/50 p-3 dark:bg-ink-950/40">
               {/* Wall Selector */}
               <div className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-medium text-ink-500 dark:text-ink-400">
+                <span className="text-[11px] font-semibold text-ink-700 dark:text-sage-100">
                   Wall placement
                 </span>
-                <div className="grid grid-cols-4 gap-1 rounded-control bg-ink-200/50 p-1 dark:bg-ink-800">
-                  {WALL_SIDES.map((side) => {
-                    const active = opening.wall === side;
-                    const sideName = side.charAt(0).toUpperCase() + side.slice(1);
-                    const compass =
-                      side === 'north'
-                        ? 'Back'
-                        : side === 'south'
-                          ? 'Front'
-                          : side === 'east'
-                            ? 'Right'
-                            : 'Left';
+                <div className="grid grid-cols-4 gap-1 rounded-control bg-ink-200/50 p-1 dark:bg-ink-800/80">
+                  {[
+                    { side: 'north' as const, label: 'North', hint: 'Back', arrow: '↑' },
+                    { side: 'south' as const, label: 'South', hint: 'Front', arrow: '↓' },
+                    { side: 'east' as const, label: 'East', hint: 'Right', arrow: '→' },
+                    { side: 'west' as const, label: 'West', hint: 'Left', arrow: '←' },
+                  ].map((item) => {
+                    const active = opening.wall === item.side;
                     return (
                       <button
-                        key={side}
+                        key={item.side}
                         type="button"
-                        onClick={() => updateOpening(opening.id, { wall: side })}
+                        onClick={() => updateOpening(opening.id, { wall: item.side })}
                         className={clsx(
-                          'flex flex-col items-center justify-center rounded py-1 px-1 text-[11px] font-medium transition-all',
+                          'flex flex-col items-center justify-center rounded py-1.5 px-1 transition-all duration-150',
                           active
-                            ? 'bg-white text-ink-900 shadow-subtle dark:bg-ink-700 dark:text-sage-50'
-                            : 'text-ink-500 hover:text-ink-800 dark:text-ink-400 dark:hover:text-sage-100'
+                            ? 'bg-white text-ink-900 shadow-subtle dark:bg-ink-700 dark:text-sage-50 font-bold'
+                            : 'text-ink-500 hover:text-ink-800 dark:text-ink-400 dark:hover:text-sage-100 font-medium'
                         )}
                       >
-                        <span className="font-semibold">{sideName}</span>
-                        <span className="text-[9px] opacity-60">({compass})</span>
+                        <span className="text-[11px] font-bold leading-none">{item.arrow}</span>
+                        <span className="text-[10.5px] leading-tight font-semibold mt-0.5">{item.label}</span>
+                        <span className="text-[8.5px] opacity-60">({item.hint})</span>
                       </button>
                     );
                   })}
@@ -267,19 +430,19 @@ function OpeningCard({
               </div>
 
               {/* Position Along Wall with Center action */}
-              <div className="flex flex-col gap-1.5 rounded-control border border-ink-200/70 bg-white/80 p-2.5 shadow-subtle dark:border-ink-700/60 dark:bg-ink-900/60">
+              <div className="flex flex-col gap-1.5 rounded-control border border-ink-200/80 bg-white/80 p-2.5 shadow-subtle dark:border-ink-700/60 dark:bg-ink-900/60">
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-medium text-ink-600 dark:text-ink-300">
+                  <span className="font-semibold text-ink-700 dark:text-sage-100">
                     Position along wall
                   </span>
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => updateOpening(opening.id, { offset: maxOffset / 2 })}
-                      className="rounded bg-sage-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-sage-700 hover:bg-sage-500/20 dark:bg-sage-500/20 dark:text-sage-300"
+                      className="rounded bg-sage-500/15 px-2 py-0.5 text-[10px] font-bold text-sage-700 hover:bg-sage-500/25 dark:bg-sage-500/20 dark:text-sage-300 transition-colors"
                       title="Center along wall"
                     >
-                      Center
+                      Center on wall
                     </button>
                     <span className="tabular-nums font-semibold text-ink-800 dark:text-sage-50">
                       {toDisplay(opening.offset, unit).toFixed(2)} {unitLabel(unit)}
@@ -304,10 +467,10 @@ function OpeningCard({
                       offset: fromDisplay(Number(e.currentTarget.value), unit),
                     })
                   }
-                  className="h-1 w-full cursor-pointer appearance-none rounded-full bg-ink-200 accent-sage-600 dark:bg-ink-700"
+                  className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-ink-200 accent-sage-600 dark:bg-ink-700"
                 />
-                <div className="flex justify-between text-[10px] text-ink-400">
-                  <span>Start (0.00)</span>
+                <div className="flex justify-between text-[10px] font-mono text-ink-400">
+                  <span>Corner (0.00)</span>
                   <span className="tabular-nums">
                     Max {toDisplay(maxOffset, unit).toFixed(2)} {unitLabel(unit)}
                   </span>
@@ -315,44 +478,126 @@ function OpeningCard({
               </div>
 
               {/* Dimensions: 2-column paired Width & Height */}
-              <div className="grid grid-cols-2 gap-2">
-                <CompactDimensionField
-                  label="Width"
-                  badge="W"
-                  value={opening.width}
-                  min={0.2}
-                  max={maxOffset}
-                  step={0.01}
-                  unit={unit}
-                  onChange={(w) => updateOpening(opening.id, { width: w }, true)}
-                  onCommit={(w) => updateOpening(opening.id, { width: w })}
-                />
-                <CompactDimensionField
-                  label="Height"
-                  badge="H"
-                  value={opening.height}
-                  min={0.2}
-                  max={dims.height}
-                  step={0.01}
-                  unit={unit}
-                  onChange={(h) => updateOpening(opening.id, { height: h }, true)}
-                  onCommit={(h) => updateOpening(opening.id, { height: h })}
-                />
+              <div className="flex flex-col gap-1.5">
+                <div className="grid grid-cols-2 gap-2">
+                  <CompactDimensionField
+                    label="Width"
+                    badge="W"
+                    badgeColor={isDoor ? 'sage' : 'sky'}
+                    value={opening.width}
+                    min={0.2}
+                    max={maxOffset}
+                    step={0.01}
+                    unit={unit}
+                    secondary={
+                      unit === 'ft'
+                        ? `≈ ${opening.width.toFixed(2)} m`
+                        : `≈ ${formatLengthShort(opening.width, 'ft')}`
+                    }
+                    onChange={(w) => updateOpening(opening.id, { width: w }, true)}
+                    onCommit={(w) => updateOpening(opening.id, { width: w })}
+                  />
+                  <CompactDimensionField
+                    label="Height"
+                    badge="H"
+                    badgeColor={isDoor ? 'sage' : 'sky'}
+                    value={opening.height}
+                    min={0.2}
+                    max={dims.height}
+                    step={0.01}
+                    unit={unit}
+                    secondary={
+                      unit === 'ft'
+                        ? `≈ ${opening.height.toFixed(2)} m`
+                        : `≈ ${formatLengthShort(opening.height, 'ft')}`
+                    }
+                    onChange={(h) => updateOpening(opening.id, { height: h }, true)}
+                    onCommit={(h) => updateOpening(opening.id, { height: h })}
+                  />
+                </div>
+
+                {/* Standard Size Presets */}
+                <div className="flex gap-1 pt-0.5">
+                  {(isDoor
+                    ? unit === 'ft'
+                      ? [
+                          { label: '30″ × 80″', w: 0.762, h: 2.032 },
+                          { label: '36″ × 80″', w: 0.914, h: 2.032 },
+                          { label: '60″ Double', w: 1.524, h: 2.032 },
+                        ]
+                      : [
+                          { label: '0.75 × 2.0 m', w: 0.75, h: 2.0 },
+                          { label: '0.9 × 2.1 m', w: 0.9, h: 2.1 },
+                          { label: '1.5 × 2.1 m', w: 1.5, h: 2.1 },
+                        ]
+                    : unit === 'ft'
+                      ? [
+                          { label: '24″ × 48″', w: 0.61, h: 1.219 },
+                          { label: '36″ × 48″', w: 0.914, h: 1.219 },
+                          { label: '60″ × 48″', w: 1.524, h: 1.219 },
+                        ]
+                      : [
+                          { label: '0.6 × 1.2 m', w: 0.6, h: 1.2 },
+                          { label: '1.0 × 1.4 m', w: 1.0, h: 1.4 },
+                          { label: '1.6 × 1.4 m', w: 1.6, h: 1.4 },
+                        ]
+                  ).map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => updateOpening(opening.id, { width: preset.w, height: preset.h })}
+                      className="flex-1 rounded border border-ink-200/90 bg-white/80 py-0.5 text-[9.5px] font-medium text-ink-600 hover:border-sage-400 hover:text-sage-700 dark:border-ink-700/80 dark:bg-ink-800/60 dark:text-ink-300 transition-colors"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Window: Sill Height */}
               {!isDoor && (
-                <CompactDimensionField
-                  label="Sill height"
-                  badge="S"
-                  value={opening.sillHeight}
-                  min={0}
-                  max={Math.max(0, dims.height - opening.height)}
-                  step={0.01}
-                  unit={unit}
-                  onChange={(s) => updateOpening(opening.id, { sillHeight: s }, true)}
-                  onCommit={(s) => updateOpening(opening.id, { sillHeight: s })}
-                />
+                <div className="flex flex-col gap-1.5">
+                  <CompactDimensionField
+                    label="Sill height"
+                    badge="S"
+                    badgeColor="amber"
+                    value={opening.sillHeight}
+                    min={0}
+                    max={Math.max(0, dims.height - opening.height)}
+                    step={0.01}
+                    unit={unit}
+                    secondary={
+                      unit === 'ft'
+                        ? `≈ ${opening.sillHeight.toFixed(2)} m`
+                        : `≈ ${formatLengthShort(opening.sillHeight, 'ft')}`
+                    }
+                    onChange={(s) => updateOpening(opening.id, { sillHeight: s }, true)}
+                    onCommit={(s) => updateOpening(opening.id, { sillHeight: s })}
+                  />
+                  <div className="flex gap-1">
+                    {(unit === 'ft'
+                      ? [
+                          { label: 'Floor (0″)', m: 0 },
+                          { label: '34″ (Std)', m: 0.864 },
+                          { label: '48″ (High)', m: 1.219 },
+                        ]
+                      : [
+                          { label: 'Floor (0 m)', m: 0 },
+                          { label: '0.85 m (Std)', m: 0.85 },
+                          { label: '1.2 m (High)', m: 1.2 },
+                        ]
+                    ).map((sp) => (
+                      <button
+                        key={sp.label}
+                        type="button"
+                        onClick={() => updateOpening(opening.id, { sillHeight: sp.m })}
+                        className="flex-1 rounded border border-ink-200/90 bg-white/80 py-0.5 text-[9.5px] font-medium text-ink-600 hover:border-sky-400 hover:text-sky-700 dark:border-ink-700/80 dark:bg-ink-800/60 dark:text-ink-300 transition-colors"
+                      >
+                        {sp.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
 
               {/* Door: Hinge & Swing */}
@@ -607,20 +852,48 @@ export function RoomPanel() {
 
   const presets = useMemo(() => getPresets(unit), [unit]);
 
+  const perimeter = (dims.width + dims.length) * 2;
+  const longerSide = Math.max(dims.width, dims.length);
+  const shorterSide = Math.min(dims.width, dims.length);
+  const ratio = shorterSide > 0 ? longerSide / shorterSide : 1;
+  const ratioLabel = ratio < 1.1 ? 'Square' : ratio < 1.35 ? 'Standard' : 'Elongated';
+
+  const ceilingPresets = useMemo(
+    () =>
+      unit === 'm'
+        ? [
+            { label: '2.4 m', val: 2.4 },
+            { label: '2.7 m', val: 2.7 },
+            { label: '3.0 m', val: 3.0 },
+            { label: '3.5 m', val: 3.5 },
+          ]
+        : [
+            { label: '8 ft', val: 2.4384 },
+            { label: '9 ft', val: 2.7432 },
+            { label: '10 ft', val: 3.048 },
+            { label: '12 ft', val: 3.6576 },
+          ],
+    [unit]
+  );
+
   return (
     <>
-      <Section
-        title="Dimensions"
-        icon="ruler"
-        action={
-          <span className="inline-flex items-center gap-1 rounded-full bg-sage-500/15 px-2.5 py-0.5 text-[11px] font-semibold tabular-nums text-sage-700 dark:text-sage-300">
-            {formatArea(area, unit)}
-          </span>
-        }
-      >
-        {/* Unit switch */}
-        <div className="flex items-center justify-between">
-          <span className="text-caption font-medium text-ink-500 dark:text-ink-400">Units</span>
+      {/* ── Architectural Room Overview Card ── */}
+      <div className="relative overflow-hidden rounded-panel border border-ink-200/90 bg-gradient-to-br from-white via-sage-50/25 to-ink-50/40 p-3 shadow-subtle dark:border-ink-700/80 dark:from-ink-900/90 dark:via-ink-850 dark:to-ink-900/70">
+        <div className="flex items-center justify-between pb-2.5 border-b border-ink-100 dark:border-ink-800/70">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-control bg-sage-500/15 text-sage-600 ring-1 ring-sage-500/20 dark:bg-sage-500/20 dark:text-sage-300">
+              <Icon name="home" className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="text-caption font-bold text-ink-900 dark:text-sage-50">
+                Room Architecture
+              </div>
+              <div className="text-[10px] text-ink-400">
+                Active interior envelope
+              </div>
+            </div>
+          </div>
           <Segmented
             size="sm"
             label="Measurement units"
@@ -633,42 +906,102 @@ export function RoomPanel() {
           />
         </div>
 
+        {/* 3 Key Architectural Metrics */}
+        <div className="grid grid-cols-3 gap-1.5 pt-2.5 text-center">
+          <div className="rounded-control border border-ink-200/60 bg-white/80 p-1.5 shadow-subtle dark:border-ink-800 dark:bg-ink-800/60">
+            <div className="text-[10px] font-medium text-ink-400">Usable Area</div>
+            <div className="text-[12px] font-bold tabular-nums text-sage-700 dark:text-sage-300">
+              {formatArea(area, unit)}
+            </div>
+            <div className="text-[9px] text-ink-400 font-mono">
+              {unit === 'ft'
+                ? `≈ ${area.toFixed(1)} m²`
+                : `≈ ${(area / (M_PER_FT * M_PER_FT)).toFixed(1)} ft²`}
+            </div>
+          </div>
+
+          <div className="rounded-control border border-ink-200/60 bg-white/80 p-1.5 shadow-subtle dark:border-ink-800 dark:bg-ink-800/60">
+            <div className="text-[10px] font-medium text-ink-400">Perimeter</div>
+            <div className="text-[12px] font-bold tabular-nums text-ink-800 dark:text-sage-100">
+              {formatLengthShort(perimeter, unit)}
+            </div>
+            <div className="text-[9px] text-ink-400 font-mono">
+              2×(W+L)
+            </div>
+          </div>
+
+          <div className="rounded-control border border-ink-200/60 bg-white/80 p-1.5 shadow-subtle dark:border-ink-800 dark:bg-ink-800/60">
+            <div className="text-[10px] font-medium text-ink-400">Ratio</div>
+            <div className="text-[12px] font-bold tabular-nums text-ink-800 dark:text-sage-100">
+              1 : {ratio.toFixed(2)}
+            </div>
+            <div className="text-[9px] text-ink-400 font-mono">
+              {ratioLabel}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Section
+        title="Dimensions"
+        icon="ruler"
+        action={
+          <span className="inline-flex items-center gap-1 rounded-full bg-sage-500/15 px-2.5 py-0.5 text-[11px] font-semibold tabular-nums text-sage-700 dark:text-sage-300">
+            {formatArea(area, unit)}
+          </span>
+        }
+      >
         {/* Floor dimensions: 2-column W & L */}
         <div className="flex flex-col gap-2">
-          <span className="text-[11px] font-medium text-ink-500 dark:text-ink-400">
-            Floor plan (Interior)
-          </span>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-ink-700 dark:text-sage-100">
+              Floor plan (Interior)
+            </span>
+            <span className="text-[10px] text-ink-400">Usable boundary</span>
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <CompactDimensionField
               label="Width"
               badge="W"
+              badgeColor="sage"
               value={dims.width}
               min={ROOM_LIMITS.minWidth}
               max={ROOM_LIMITS.maxWidth}
               unit={unit}
+              secondary={
+                unit === 'ft'
+                  ? `≈ ${dims.width.toFixed(2)} m`
+                  : `≈ ${(dims.width / M_PER_FT).toFixed(2)} ft`
+              }
               onChange={(w) => setRoomDimensions({ width: w })}
             />
             <CompactDimensionField
               label="Length"
               badge="L"
+              badgeColor="sky"
               value={dims.length}
               min={ROOM_LIMITS.minLength}
               max={ROOM_LIMITS.maxLength}
               unit={unit}
+              secondary={
+                unit === 'ft'
+                  ? `≈ ${dims.length.toFixed(2)} m`
+                  : `≈ ${(dims.length / M_PER_FT).toFixed(2)} ft`
+              }
               onChange={(l) => setRoomDimensions({ length: l })}
             />
           </div>
         </div>
 
-        {/* Quick Room Size Presets */}
+        {/* Quick Room Size Presets (2x2 Grid) */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-ink-500 dark:text-ink-400">
-              Room presets
+            <span className="text-[11px] font-semibold text-ink-700 dark:text-sage-100">
+              Room archetypes
             </span>
             <span className="text-[10px] text-ink-400">Standard footprints</span>
           </div>
-          <div className="grid grid-cols-4 gap-1">
+          <div className="grid grid-cols-2 gap-1.5">
             {presets.map((p) => {
               const active =
                 Math.abs(dims.width - p.w) < 0.05 && Math.abs(dims.length - p.l) < 0.05;
@@ -678,13 +1011,37 @@ export function RoomPanel() {
                   type="button"
                   onClick={() => setRoomDimensions({ width: p.w, length: p.l })}
                   className={clsx(
-                    'rounded-control border px-1.5 py-1 text-center text-[10px] font-medium transition-all',
+                    'flex flex-col items-start rounded-control border p-2 text-left transition-all duration-150',
                     active
-                      ? 'border-sage-500 bg-sage-50 text-sage-800 shadow-subtle dark:bg-sage-950/60 dark:text-sage-200'
-                      : 'border-ink-200/80 bg-white text-ink-600 hover:border-ink-300 hover:bg-ink-50 dark:border-ink-800 dark:bg-ink-900/60 dark:text-ink-300 dark:hover:bg-ink-800'
+                      ? 'border-sage-500 bg-sage-50/80 shadow-subtle ring-1 ring-sage-500/30 dark:border-sage-500/80 dark:bg-sage-950/40'
+                      : 'border-ink-200/80 bg-white/60 hover:border-ink-300 hover:bg-ink-50/70 dark:border-ink-800 dark:bg-ink-800/40 dark:hover:border-ink-700 dark:hover:bg-ink-800/70'
                   )}
                 >
-                  {p.label}
+                  <div className="flex w-full items-center justify-between">
+                    <span
+                      className={clsx(
+                        'text-[11px] font-semibold',
+                        active
+                          ? 'text-sage-800 dark:text-sage-200'
+                          : 'text-ink-800 dark:text-sage-50'
+                      )}
+                    >
+                      {p.name}
+                    </span>
+                    <span
+                      className={clsx(
+                        'rounded px-1 text-[9px] font-mono tabular-nums',
+                        active
+                          ? 'bg-sage-500/20 text-sage-700 dark:text-sage-300'
+                          : 'bg-ink-100 text-ink-500 dark:bg-ink-700/60 dark:text-ink-400'
+                      )}
+                    >
+                      {p.areaLabel}
+                    </span>
+                  </div>
+                  <span className="mt-0.5 text-[10px] font-mono text-ink-400">
+                    {p.label}
+                  </span>
                 </button>
               );
             })}
@@ -693,34 +1050,61 @@ export function RoomPanel() {
 
         {/* Wall & Structural Specs: 2-column Height & Thickness */}
         <div className="flex flex-col gap-2">
-          <span className="text-[11px] font-medium text-ink-500 dark:text-ink-400">
+          <span className="text-[11px] font-semibold text-ink-700 dark:text-sage-100">
             Wall & vertical structure
           </span>
           <div className="grid grid-cols-2 gap-2">
             <CompactDimensionField
               label="Wall height"
               badge="H"
+              badgeColor="amber"
               value={dims.height}
               min={ROOM_LIMITS.minHeight}
               max={ROOM_LIMITS.maxHeight}
               unit={unit}
+              secondary={
+                unit === 'ft'
+                  ? `≈ ${dims.height.toFixed(2)} m`
+                  : `≈ ${(dims.height / M_PER_FT).toFixed(2)} ft`
+              }
               onChange={(h) => setRoomDimensions({ height: h })}
             />
-            <CompactDimensionField
-              label="Thickness"
-              badge="T"
-              value={dims.wallThickness}
-              min={ROOM_LIMITS.minWallThickness}
-              max={ROOM_LIMITS.maxWallThickness}
+            <WallThicknessControl
+              thickness={dims.wallThickness}
               unit={unit}
               onChange={(t) => setRoomDimensions({ wallThickness: t })}
             />
           </div>
+
+          {/* Quick Ceiling Presets */}
+          <div className="flex items-center gap-1.5 pt-0.5">
+            <span className="text-[10px] text-ink-400 shrink-0">Ceiling:</span>
+            <div className="grid grid-cols-4 gap-1 flex-1">
+              {ceilingPresets.map((cp) => {
+                const active = Math.abs(dims.height - cp.val) < 0.04;
+                return (
+                  <button
+                    key={cp.label}
+                    type="button"
+                    onClick={() => setRoomDimensions({ height: cp.val })}
+                    className={clsx(
+                      'rounded-control border px-1.5 py-0.5 text-center text-[10px] font-medium transition-all',
+                      active
+                        ? 'border-amber-500/70 bg-amber-50 text-amber-800 shadow-subtle dark:bg-amber-950/50 dark:text-amber-200'
+                        : 'border-ink-200/80 bg-white/70 text-ink-600 hover:border-ink-300 dark:border-ink-800 dark:bg-ink-800/40 dark:text-ink-400'
+                    )}
+                  >
+                    {cp.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 rounded-control bg-ink-50/80 p-2 text-[11px] text-ink-500 dark:bg-ink-800/40 dark:text-ink-400">
+        <div className="flex items-center gap-2 rounded-control border border-sage-200/60 bg-sage-50/50 p-2 text-[11px] text-sage-800 dark:border-sage-900/50 dark:bg-sage-950/30 dark:text-sage-300">
           <Icon name="info" className="h-3.5 w-3.5 shrink-0 text-sage-600 dark:text-sage-400" />
-          <span>Width and length are interior measurements — the usable floor.</span>
+          <span>Width and length are interior measurements — the usable floor boundary.</span>
         </div>
       </Section>
 
@@ -735,18 +1119,18 @@ export function RoomPanel() {
           ) : undefined
         }
       >
-        {/* Quick Add Action Bar */}
+        {/* Quick Add Action Bar with Gradient Badges */}
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => handleAddOpening('door', 'south')}
             className={clsx(
-              'group flex items-center justify-center gap-2 rounded-control border border-ink-200 bg-white px-3 py-2 text-caption font-medium shadow-subtle',
-              'transition-all duration-150 hover:border-sage-500 hover:bg-sage-50/40 hover:text-sage-900',
-              'dark:border-ink-700/80 dark:bg-ink-800/80 dark:text-sage-100 dark:hover:border-sage-500 dark:hover:bg-sage-950/40'
+              'group flex items-center justify-center gap-2 rounded-control border border-sage-500/30 bg-gradient-to-b from-white to-sage-50/30 px-3 py-2.5 text-caption font-semibold shadow-subtle',
+              'transition-all duration-150 hover:border-sage-500 hover:from-sage-50/60 hover:to-sage-100/50 hover:text-sage-900 hover:shadow-glow-sage',
+              'dark:border-sage-500/30 dark:from-ink-800 dark:to-sage-950/30 dark:text-sage-100 dark:hover:border-sage-500 dark:hover:from-ink-800 dark:hover:to-sage-950/60'
             )}
           >
-            <span className="flex h-5 w-5 items-center justify-center rounded bg-sage-500/15 text-sage-600 transition-colors group-hover:bg-sage-600 group-hover:text-white dark:text-sage-300">
+            <span className="flex h-5 w-5 items-center justify-center rounded bg-sage-500/20 text-sage-600 transition-colors group-hover:bg-sage-600 group-hover:text-white dark:text-sage-300">
               <Icon name="door" className="h-3.5 w-3.5" />
             </span>
             <span>+ Add Door</span>
@@ -755,12 +1139,12 @@ export function RoomPanel() {
             type="button"
             onClick={() => handleAddOpening('window', 'north')}
             className={clsx(
-              'group flex items-center justify-center gap-2 rounded-control border border-ink-200 bg-white px-3 py-2 text-caption font-medium shadow-subtle',
-              'transition-all duration-150 hover:border-sky-500 hover:bg-sky-50/40 hover:text-sky-900',
-              'dark:border-ink-700/80 dark:bg-ink-800/80 dark:text-sky-100 dark:hover:border-sky-500 dark:hover:bg-sky-950/40'
+              'group flex items-center justify-center gap-2 rounded-control border border-sky-500/30 bg-gradient-to-b from-white to-sky-50/30 px-3 py-2.5 text-caption font-semibold shadow-subtle',
+              'transition-all duration-150 hover:border-sky-500 hover:from-sky-50/60 hover:to-sky-100/50 hover:text-sky-900',
+              'dark:border-sky-500/30 dark:from-ink-800 dark:to-sky-950/30 dark:text-sky-100 dark:hover:border-sky-500 dark:hover:from-ink-800 dark:hover:to-sky-950/60'
             )}
           >
-            <span className="flex h-5 w-5 items-center justify-center rounded bg-sky-500/15 text-sky-600 transition-colors group-hover:bg-sky-600 group-hover:text-white dark:text-sky-300">
+            <span className="flex h-5 w-5 items-center justify-center rounded bg-sky-500/20 text-sky-600 transition-colors group-hover:bg-sky-600 group-hover:text-white dark:text-sky-300">
               <Icon name="window" className="h-3.5 w-3.5" />
             </span>
             <span>+ Add Window</span>
@@ -769,7 +1153,7 @@ export function RoomPanel() {
 
         {/* Filter Pills if multiple openings */}
         {doc.room.openings.length > 1 && (
-          <div className="flex items-center gap-1 rounded-control bg-ink-100 p-0.5 text-[11px] dark:bg-ink-800">
+          <div className="flex items-center gap-1 rounded-control bg-ink-100/80 p-0.5 text-[11px] dark:bg-ink-800/80">
             <button
               type="button"
               onClick={() => setOpeningFilter('all')}

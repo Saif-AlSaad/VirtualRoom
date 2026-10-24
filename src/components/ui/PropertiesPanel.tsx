@@ -801,10 +801,17 @@ export function PropertiesPanel() {
           aria-label="Properties"
           className="z-20 flex h-full w-[320px] shrink-0 flex-col border-l border-ink-200 bg-white dark:border-ink-800 dark:bg-ink-900"
         >
-          <div className="flex items-center justify-between border-b border-ink-200 px-4 py-2 dark:border-ink-800">
-            <h2 className="text-caption font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
-              {selection.length === 0 ? 'Room' : 'Properties'}
-            </h2>
+          <div className="flex items-center justify-between border-b border-ink-200/80 px-4 py-2.5 dark:border-ink-800 bg-ink-50/40 dark:bg-ink-900/50 backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-control bg-sage-500/15 text-sage-700 dark:bg-sage-500/25 dark:text-sage-300">
+                <Icon name={selection.length === 0 ? 'home' : 'cube'} className="h-3.5 w-3.5" />
+              </span>
+              <div>
+                <h2 className="text-caption font-bold tracking-tight text-ink-900 dark:text-sage-50">
+                  {selection.length === 0 ? 'Room Architecture' : 'Item Properties'}
+                </h2>
+              </div>
+            </div>
             <IconButton
               size="sm"
               icon="chevron-right"
