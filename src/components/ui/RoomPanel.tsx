@@ -27,33 +27,7 @@ import {
 } from '@/utils/units';
 import { formatCurrency } from '@/utils/exporters';
 import { Icon } from './Icon';
-import { Button, ColorPicker, IconButton, Section, Segmented, Switch } from './primitives';
-
-export interface RoomPreset {
-  name: string;
-  label: string;
-  areaLabel: string;
-  w: number;
-  l: number;
-}
-
-/**
- * Architectural room presets by unit system with archetype classifications.
- */
-const getPresets = (unit: Unit): RoomPreset[] =>
-  unit === 'm'
-    ? [
-        { name: 'Studio', label: '3.0 × 3.0 m', areaLabel: '9.0 m²', w: 3.0, l: 3.0 },
-        { name: 'Bedroom', label: '4.0 × 4.5 m', areaLabel: '18.0 m²', w: 4.0, l: 4.5 },
-        { name: 'Living', label: '5.0 × 6.0 m', areaLabel: '30.0 m²', w: 5.0, l: 6.0 },
-        { name: 'Great Room', label: '6.0 × 8.0 m', areaLabel: '48.0 m²', w: 6.0, l: 8.0 },
-      ]
-    : [
-        { name: 'Studio', label: '10 × 10 ft', areaLabel: '100 ft²', w: 3.048, l: 3.048 },
-        { name: 'Bedroom', label: '12 × 14 ft', areaLabel: '168 ft²', w: 3.658, l: 4.267 },
-        { name: 'Living', label: '15 × 18 ft', areaLabel: '270 ft²', w: 4.572, l: 5.486 },
-        { name: 'Great Room', label: '18 × 24 ft', areaLabel: '432 ft²', w: 5.486, l: 7.315 },
-      ];
+import { Button, ColorPicker, IconButton, Section, Segmented, Switch, Tooltip } from './primitives';
 
 /**
  * Compact dimension input cell for paired CAD-style inputs (e.g. W x L, H x T).
@@ -62,6 +36,7 @@ function CompactDimensionField({
   label,
   badge,
   badgeColor = 'sage',
+  icon,
   value,
   min,
   max,
@@ -75,6 +50,7 @@ function CompactDimensionField({
   label: string;
   badge?: string;
   badgeColor?: 'sage' | 'sky' | 'amber' | 'indigo';
+  icon?: React.ReactNode;
   value: number;
   min: number;
   max: number;
@@ -101,6 +77,16 @@ function CompactDimensionField({
     setText(null);
   };
 
+  const nudge = (delta: number) => {
+    const current = toDisplay(value, unit);
+    const updated = Math.max(displayMin, Math.min(displayMax, current + delta));
+    const metres = fromDisplay(updated, unit);
+    onChange(metres);
+    onCommit?.(metres);
+  };
+
+  const nudgeAmount = unit === 'ft' ? 0.5 : 0.1;
+
   const badgeStyles = {
     sage: 'bg-sage-500/15 text-sage-700 dark:bg-sage-500/25 dark:text-sage-300',
     sky: 'bg-sky-500/15 text-sky-700 dark:bg-sky-500/25 dark:text-sky-300',
@@ -109,7 +95,7 @@ function CompactDimensionField({
   };
 
   return (
-    <div className="flex flex-col gap-2 rounded-control border border-ink-200/90 bg-white/70 p-2.5 transition-all duration-150 focus-within:border-sage-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-sage-500/20 dark:border-ink-700/70 dark:bg-ink-800/40 dark:focus-within:border-sage-500 dark:focus-within:bg-ink-850 shadow-subtle">
+    <div className="group flex flex-col gap-2 rounded-control border border-ink-200/90 bg-white/70 p-2.5 transition-all duration-150 focus-within:border-sage-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-sage-500/20 dark:border-ink-700/70 dark:bg-ink-800/40 dark:focus-within:border-sage-500 dark:focus-within:bg-ink-850 shadow-subtle hover:border-ink-300 dark:hover:border-ink-700">
       <div className="flex items-center justify-between text-[11px]">
         <span className="flex items-center gap-1.5 font-semibold text-ink-700 dark:text-sage-100">
           {badge && (
@@ -122,6 +108,7 @@ function CompactDimensionField({
               {badge}
             </span>
           )}
+          {icon}
           {label}
         </span>
         {secondary ? (
@@ -150,11 +137,31 @@ function CompactDimensionField({
             }
             e.stopPropagation();
           }}
-          className="h-7.5 w-full rounded border border-ink-200 bg-white px-2.5 text-caption font-semibold tabular-nums text-ink-900 transition-colors focus:border-sage-500 focus:outline-none dark:border-ink-700 dark:bg-ink-900 dark:text-sage-50"
+          className="h-7.5 w-full rounded border border-ink-200 bg-white pl-2.5 pr-14 text-caption font-semibold tabular-nums text-ink-900 transition-colors focus:border-sage-500 focus:outline-none dark:border-ink-700 dark:bg-ink-900 dark:text-sage-50"
         />
-        <span className="pointer-events-none absolute right-2 text-[10px] font-semibold uppercase text-ink-400 dark:text-ink-500">
-          {suffix ?? unitLabel(unit)}
-        </span>
+        <div className="absolute right-1 flex items-center gap-0.5">
+          <motion.button
+            whileTap={{ scale: 0.85 }}
+            type="button"
+            onClick={() => nudge(-nudgeAmount)}
+            className="flex h-5 w-4 items-center justify-center rounded text-ink-400 hover:bg-ink-100 hover:text-ink-700 dark:hover:bg-ink-800 dark:hover:text-sage-200 transition-colors"
+            title={`Decrease by ${nudgeAmount}`}
+          >
+            <span className="text-[12px] font-bold leading-none">−</span>
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.85 }}
+            type="button"
+            onClick={() => nudge(+nudgeAmount)}
+            className="flex h-5 w-4 items-center justify-center rounded text-ink-400 hover:bg-ink-100 hover:text-ink-700 dark:hover:bg-ink-800 dark:hover:text-sage-200 transition-colors"
+            title={`Increase by ${nudgeAmount}`}
+          >
+            <span className="text-[12px] font-bold leading-none">+</span>
+          </motion.button>
+          <span className="pointer-events-none ml-0.5 text-[9.5px] font-semibold uppercase text-ink-400 dark:text-ink-500">
+            {suffix ?? unitLabel(unit)}
+          </span>
+        </div>
       </div>
 
       <div className="pt-0.5">
@@ -214,6 +221,14 @@ function WallThicknessControl({
     setText(null);
   };
 
+  const nudge = (delta: number) => {
+    const updated = Math.max(minVal, Math.min(maxVal, displayVal + delta));
+    const metres = isFt ? updated * M_PER_IN : updated / 100;
+    onChange(metres);
+  };
+
+  const nudgeAmount = isFt ? 0.5 : 1;
+
   const presets = isFt
     ? [
         { label: '4.5″ Stud', m: 0.1143 },
@@ -228,12 +243,16 @@ function WallThicknessControl({
       ];
 
   return (
-    <div className="flex flex-col gap-2 rounded-control border border-ink-200/90 bg-white/70 p-2.5 transition-all duration-150 focus-within:border-sage-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-sage-500/20 dark:border-ink-700/70 dark:bg-ink-800/40 dark:focus-within:border-sage-500 dark:focus-within:bg-ink-850 shadow-subtle">
+    <div className="group flex flex-col gap-2 rounded-control border border-ink-200/90 bg-white/70 p-2.5 transition-all duration-150 focus-within:border-sage-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-sage-500/20 dark:border-ink-700/70 dark:bg-ink-800/40 dark:focus-within:border-sage-500 dark:focus-within:bg-ink-850 shadow-subtle hover:border-ink-300 dark:hover:border-ink-700">
       <div className="flex items-center justify-between text-[11px]">
         <span className="flex items-center gap-1.5 font-semibold text-ink-700 dark:text-sage-100">
           <span className="flex h-4 w-4 items-center justify-center rounded font-bold text-[9px] bg-amber-500/15 text-amber-700 dark:bg-amber-500/25 dark:text-amber-300 shadow-subtle">
             T
           </span>
+          <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <rect x="2" y="3" width="12" height="10" rx="1.5" />
+            <path d="M6 3v10M10 3v10" strokeDasharray="2 2" strokeWidth="1.2" />
+          </svg>
           Thickness
         </span>
         <span className="text-[10px] font-mono text-ink-400 dark:text-ink-500">
@@ -256,11 +275,31 @@ function WallThicknessControl({
             }
             e.stopPropagation();
           }}
-          className="h-7.5 w-full rounded border border-ink-200 bg-white px-2.5 text-caption font-semibold tabular-nums text-ink-900 transition-colors focus:border-sage-500 focus:outline-none dark:border-ink-700 dark:bg-ink-900 dark:text-sage-50"
+          className="h-7.5 w-full rounded border border-ink-200 bg-white pl-2.5 pr-14 text-caption font-semibold tabular-nums text-ink-900 transition-colors focus:border-sage-500 focus:outline-none dark:border-ink-700 dark:bg-ink-900 dark:text-sage-50"
         />
-        <span className="pointer-events-none absolute right-2 text-[10px] font-semibold uppercase text-ink-400 dark:text-ink-500">
-          {suffix}
-        </span>
+        <div className="absolute right-1 flex items-center gap-0.5">
+          <motion.button
+            whileTap={{ scale: 0.85 }}
+            type="button"
+            onClick={() => nudge(-nudgeAmount)}
+            className="flex h-5 w-4 items-center justify-center rounded text-ink-400 hover:bg-ink-100 hover:text-ink-700 dark:hover:bg-ink-800 dark:hover:text-sage-200 transition-colors"
+            title={`Decrease by ${nudgeAmount}`}
+          >
+            <span className="text-[12px] font-bold leading-none">−</span>
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.85 }}
+            type="button"
+            onClick={() => nudge(+nudgeAmount)}
+            className="flex h-5 w-4 items-center justify-center rounded text-ink-400 hover:bg-ink-100 hover:text-ink-700 dark:hover:bg-ink-800 dark:hover:text-sage-200 transition-colors"
+            title={`Increase by ${nudgeAmount}`}
+          >
+            <span className="text-[12px] font-bold leading-none">+</span>
+          </motion.button>
+          <span className="pointer-events-none ml-0.5 text-[9.5px] font-semibold uppercase text-ink-400 dark:text-ink-500">
+            {suffix}
+          </span>
+        </div>
       </div>
 
       <div className="pt-0.5">
@@ -283,19 +322,21 @@ function WallThicknessControl({
         {presets.map((p) => {
           const active = Math.abs(thickness - p.m) < 0.015;
           return (
-            <button
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              whileHover={{ y: -0.5 }}
               key={p.label}
               type="button"
               onClick={() => onChange(p.m)}
               className={clsx(
-                'flex-1 rounded border py-0.5 text-[9.5px] font-medium transition-colors',
+                'flex-1 rounded border py-0.5 text-[9.5px] font-medium transition-all duration-150',
                 active
-                  ? 'border-sage-500 bg-sage-50 text-sage-800 dark:bg-sage-950/60 dark:text-sage-200 font-semibold shadow-subtle'
+                  ? 'border-sage-500 bg-sage-50 text-sage-800 dark:bg-sage-950/60 dark:text-sage-200 font-semibold shadow-subtle ring-1 ring-sage-500/20'
                   : 'border-ink-200/80 bg-white/80 text-ink-600 hover:border-sage-400 hover:text-sage-700 dark:border-ink-700/80 dark:bg-ink-800/60 dark:text-ink-300'
               )}
             >
               {p.label}
-            </button>
+            </motion.button>
           );
         })}
       </div>
@@ -397,33 +438,44 @@ function OpeningCard({
             <div className="flex flex-col gap-3 bg-ink-50/50 p-3 dark:bg-ink-950/40">
               {/* Wall Selector */}
               <div className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-semibold text-ink-700 dark:text-sage-100">
-                  Wall placement
-                </span>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="flex items-center gap-1.5 font-semibold text-ink-700 dark:text-sage-100">
+                    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-sage-600 dark:text-sage-400" fill="none" stroke="currentColor" strokeWidth="1.6">
+                      <circle cx="8" cy="8" r="6" />
+                      <path d="M8 2v12M2 8h12" opacity="0.3" />
+                      <polygon points="8,2.5 10,7 6,7" fill="currentColor" stroke="none" />
+                    </svg>
+                    Wall placement
+                  </span>
+                  <span className="text-[10px] text-ink-400">
+                    {WALL_LABEL[opening.wall]}
+                  </span>
+                </div>
                 <div className="grid grid-cols-4 gap-1 rounded-control bg-ink-200/50 p-1 dark:bg-ink-800/80">
                   {[
-                    { side: 'north' as const, label: 'North', hint: 'Back', arrow: '↑' },
-                    { side: 'south' as const, label: 'South', hint: 'Front', arrow: '↓' },
-                    { side: 'east' as const, label: 'East', hint: 'Right', arrow: '→' },
-                    { side: 'west' as const, label: 'West', hint: 'Left', arrow: '←' },
+                    { side: 'north' as const, glyph: '↑', code: 'N', label: 'North wall (Back)' },
+                    { side: 'south' as const, glyph: '↓', code: 'S', label: 'South wall (Front)' },
+                    { side: 'east' as const, glyph: '→', code: 'E', label: 'East wall (Right)' },
+                    { side: 'west' as const, glyph: '←', code: 'W', label: 'West wall (Left)' },
                   ].map((item) => {
                     const active = opening.wall === item.side;
                     return (
-                      <button
-                        key={item.side}
-                        type="button"
-                        onClick={() => updateOpening(opening.id, { wall: item.side })}
-                        className={clsx(
-                          'flex flex-col items-center justify-center rounded py-1.5 px-1 transition-all duration-150',
-                          active
-                            ? 'bg-white text-ink-900 shadow-subtle dark:bg-ink-700 dark:text-sage-50 font-bold'
-                            : 'text-ink-500 hover:text-ink-800 dark:text-ink-400 dark:hover:text-sage-100 font-medium'
-                        )}
-                      >
-                        <span className="text-[11px] font-bold leading-none">{item.arrow}</span>
-                        <span className="text-[10.5px] leading-tight font-semibold mt-0.5">{item.label}</span>
-                        <span className="text-[8.5px] opacity-60">({item.hint})</span>
-                      </button>
+                      <Tooltip key={item.side} content={item.label} side="top">
+                        <motion.button
+                          whileTap={{ scale: 0.92 }}
+                          type="button"
+                          onClick={() => updateOpening(opening.id, { wall: item.side })}
+                          className={clsx(
+                            'relative flex flex-col items-center justify-center rounded py-1 px-1 transition-all duration-150',
+                            active
+                              ? 'bg-white text-ink-900 shadow-subtle dark:bg-ink-700 dark:text-sage-50 font-bold'
+                              : 'text-ink-500 hover:text-ink-800 dark:text-ink-400 dark:hover:text-sage-100 font-medium'
+                          )}
+                        >
+                          <span className="text-[12px] font-bold leading-none">{item.glyph}</span>
+                          <span className="text-[10.5px] leading-tight font-bold mt-0.5">{item.code}</span>
+                        </motion.button>
+                      </Tooltip>
                     );
                   })}
                 </div>
@@ -436,14 +488,17 @@ function OpeningCard({
                     Position along wall
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => updateOpening(opening.id, { offset: maxOffset / 2 })}
-                      className="rounded bg-sage-500/15 px-2 py-0.5 text-[10px] font-bold text-sage-700 hover:bg-sage-500/25 dark:bg-sage-500/20 dark:text-sage-300 transition-colors"
-                      title="Center along wall"
-                    >
-                      Center on wall
-                    </button>
+                    <Tooltip content="Center opening on wall">
+                      <motion.button
+                        whileTap={{ scale: 0.92 }}
+                        type="button"
+                        onClick={() => updateOpening(opening.id, { offset: maxOffset / 2 })}
+                        className="flex items-center gap-1 rounded bg-sage-500/15 px-2 py-0.5 text-[10px] font-semibold text-sage-700 hover:bg-sage-500/25 dark:bg-sage-500/20 dark:text-sage-300 transition-colors"
+                      >
+                        <Icon name="align-center" className="h-3 w-3" />
+                        <span>Center</span>
+                      </motion.button>
+                    </Tooltip>
                     <span className="tabular-nums font-semibold text-ink-800 dark:text-sage-50">
                       {toDisplay(opening.offset, unit).toFixed(2)} {unitLabel(unit)}
                     </span>
@@ -850,8 +905,6 @@ export function RoomPanel() {
     });
   }, [doc.room.openings, openingFilter]);
 
-  const presets = useMemo(() => getPresets(unit), [unit]);
-
   const perimeter = (dims.width + dims.length) * 2;
   const longerSide = Math.max(dims.width, dims.length);
   const shorterSide = Math.min(dims.width, dims.length);
@@ -894,23 +947,54 @@ export function RoomPanel() {
               </div>
             </div>
           </div>
-          <Segmented
-            size="sm"
-            label="Measurement units"
-            value={unit}
-            options={[
-              { value: 'm', label: 'Metres' },
-              { value: 'ft', label: 'Feet' },
-            ]}
-            onChange={setUnit}
-          />
+
+          {/* Smooth Animated Unit Switcher Pill */}
+          <div className="relative flex items-center rounded-control bg-ink-200/60 p-0.5 dark:bg-ink-800/80">
+            {(['m', 'ft'] as const).map((u) => {
+              const active = unit === u;
+              return (
+                <button
+                  key={u}
+                  type="button"
+                  onClick={() => setUnit(u)}
+                  className={clsx(
+                    'relative z-10 flex items-center gap-1 rounded px-2.5 py-1 text-[11px] font-semibold transition-colors duration-150',
+                    active
+                      ? 'text-ink-900 dark:text-sage-50'
+                      : 'text-ink-500 hover:text-ink-800 dark:text-ink-400 dark:hover:text-sage-100'
+                  )}
+                >
+                  {active && (
+                    <motion.div
+                      layoutId="room-unit-pill"
+                      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                      className="absolute inset-0 rounded bg-white shadow-subtle dark:bg-ink-700"
+                    />
+                  )}
+                  <span className="relative z-10 font-mono uppercase tracking-wide">
+                    {u === 'm' ? 'm' : 'ft'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* 3 Key Architectural Metrics */}
+        {/* 3 Key Architectural Metrics with Icons & Micro-Animations */}
         <div className="grid grid-cols-3 gap-1.5 pt-2.5 text-center">
-          <div className="rounded-control border border-ink-200/60 bg-white/80 p-1.5 shadow-subtle dark:border-ink-800 dark:bg-ink-800/60">
-            <div className="text-[10px] font-medium text-ink-400">Usable Area</div>
-            <div className="text-[12px] font-bold tabular-nums text-sage-700 dark:text-sage-300">
+          <motion.div
+            whileHover={{ y: -2 }}
+            transition={{ duration: 0.15 }}
+            className="flex flex-col items-center rounded-control border border-ink-200/60 bg-white/80 p-2 shadow-subtle dark:border-ink-800 dark:bg-ink-800/60 cursor-default"
+          >
+            <div className="flex items-center gap-1 text-[10px] font-semibold text-ink-400">
+              <svg viewBox="0 0 16 16" className="h-3 w-3 text-sage-600 dark:text-sage-400" fill="none" stroke="currentColor" strokeWidth="1.6">
+                <rect x="2.5" y="2.5" width="11" height="11" rx="1.5" strokeDasharray="2.5 2.5" />
+                <path d="M5.5 2.5v11M10.5 2.5v11M2.5 5.5h11M2.5 10.5h11" strokeWidth="0.7" opacity="0.6" />
+              </svg>
+              <span>Area</span>
+            </div>
+            <div className="mt-0.5 text-[12px] font-bold tabular-nums text-sage-700 dark:text-sage-300">
               {formatArea(area, unit)}
             </div>
             <div className="text-[9px] text-ink-400 font-mono">
@@ -918,27 +1002,50 @@ export function RoomPanel() {
                 ? `≈ ${area.toFixed(1)} m²`
                 : `≈ ${(area / (M_PER_FT * M_PER_FT)).toFixed(1)} ft²`}
             </div>
-          </div>
+          </motion.div>
 
-          <div className="rounded-control border border-ink-200/60 bg-white/80 p-1.5 shadow-subtle dark:border-ink-800 dark:bg-ink-800/60">
-            <div className="text-[10px] font-medium text-ink-400">Perimeter</div>
-            <div className="text-[12px] font-bold tabular-nums text-ink-800 dark:text-sage-100">
+          <motion.div
+            whileHover={{ y: -2 }}
+            transition={{ duration: 0.15 }}
+            className="flex flex-col items-center rounded-control border border-ink-200/60 bg-white/80 p-2 shadow-subtle dark:border-ink-800 dark:bg-ink-800/60 cursor-default"
+          >
+            <div className="flex items-center gap-1 text-[10px] font-semibold text-ink-400">
+              <svg viewBox="0 0 16 16" className="h-3 w-3 text-sky-600 dark:text-sky-400" fill="none" stroke="currentColor" strokeWidth="1.6">
+                <rect x="2.5" y="2.5" width="11" height="11" rx="1.5" strokeWidth="1.6" />
+                <circle cx="2.5" cy="2.5" r="1.2" fill="currentColor" />
+                <circle cx="13.5" cy="2.5" r="1.2" fill="currentColor" />
+                <circle cx="13.5" cy="13.5" r="1.2" fill="currentColor" />
+                <circle cx="2.5" cy="13.5" r="1.2" fill="currentColor" />
+              </svg>
+              <span>Perimeter</span>
+            </div>
+            <div className="mt-0.5 text-[12px] font-bold tabular-nums text-ink-800 dark:text-sage-100">
               {formatLengthShort(perimeter, unit)}
             </div>
             <div className="text-[9px] text-ink-400 font-mono">
               2×(W+L)
             </div>
-          </div>
+          </motion.div>
 
-          <div className="rounded-control border border-ink-200/60 bg-white/80 p-1.5 shadow-subtle dark:border-ink-800 dark:bg-ink-800/60">
-            <div className="text-[10px] font-medium text-ink-400">Ratio</div>
-            <div className="text-[12px] font-bold tabular-nums text-ink-800 dark:text-sage-100">
+          <motion.div
+            whileHover={{ y: -2 }}
+            transition={{ duration: 0.15 }}
+            className="flex flex-col items-center rounded-control border border-ink-200/60 bg-white/80 p-2 shadow-subtle dark:border-ink-800 dark:bg-ink-800/60 cursor-default"
+          >
+            <div className="flex items-center gap-1 text-[10px] font-semibold text-ink-400">
+              <svg viewBox="0 0 16 16" className="h-3 w-3 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" strokeWidth="1.6">
+                <rect x="2.5" y="4" width="11" height="8" rx="1.5" />
+                <path d="M2.5 8h11" strokeDasharray="2 2" strokeWidth="0.9" />
+              </svg>
+              <span>Ratio</span>
+            </div>
+            <div className="mt-0.5 text-[12px] font-bold tabular-nums text-ink-800 dark:text-sage-100">
               1 : {ratio.toFixed(2)}
             </div>
             <div className="text-[9px] text-ink-400 font-mono">
               {ratioLabel}
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
 
@@ -951,7 +1058,7 @@ export function RoomPanel() {
           </span>
         }
       >
-        {/* Floor dimensions: 2-column W & L */}
+        {/* Floor dimensions: 2-column W & L with CAD icons */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-ink-700 dark:text-sage-100">
@@ -964,6 +1071,12 @@ export function RoomPanel() {
               label="Width"
               badge="W"
               badgeColor="sage"
+              icon={
+                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-sage-600 dark:text-sage-400" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="M2 8h12M4.5 5.5 2 8l2.5 2.5M11.5 5.5 14 8l-2.5 2.5" />
+                  <path d="M2 3v10M14 3v10" strokeWidth="1.2" opacity="0.6" />
+                </svg>
+              }
               value={dims.width}
               min={ROOM_LIMITS.minWidth}
               max={ROOM_LIMITS.maxWidth}
@@ -979,6 +1092,12 @@ export function RoomPanel() {
               label="Length"
               badge="L"
               badgeColor="sky"
+              icon={
+                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="M8 2v12M5.5 4.5 8 2l2.5 2.5M5.5 11.5 8 14l2.5-2.5" />
+                  <path d="M3 2h10M3 14h10" strokeWidth="1.2" opacity="0.6" />
+                </svg>
+              }
               value={dims.length}
               min={ROOM_LIMITS.minLength}
               max={ROOM_LIMITS.maxLength}
@@ -993,61 +1112,6 @@ export function RoomPanel() {
           </div>
         </div>
 
-        {/* Quick Room Size Presets (2x2 Grid) */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-ink-700 dark:text-sage-100">
-              Room archetypes
-            </span>
-            <span className="text-[10px] text-ink-400">Standard footprints</span>
-          </div>
-          <div className="grid grid-cols-2 gap-1.5">
-            {presets.map((p) => {
-              const active =
-                Math.abs(dims.width - p.w) < 0.05 && Math.abs(dims.length - p.l) < 0.05;
-              return (
-                <button
-                  key={p.label}
-                  type="button"
-                  onClick={() => setRoomDimensions({ width: p.w, length: p.l })}
-                  className={clsx(
-                    'flex flex-col items-start rounded-control border p-2 text-left transition-all duration-150',
-                    active
-                      ? 'border-sage-500 bg-sage-50/80 shadow-subtle ring-1 ring-sage-500/30 dark:border-sage-500/80 dark:bg-sage-950/40'
-                      : 'border-ink-200/80 bg-white/60 hover:border-ink-300 hover:bg-ink-50/70 dark:border-ink-800 dark:bg-ink-800/40 dark:hover:border-ink-700 dark:hover:bg-ink-800/70'
-                  )}
-                >
-                  <div className="flex w-full items-center justify-between">
-                    <span
-                      className={clsx(
-                        'text-[11px] font-semibold',
-                        active
-                          ? 'text-sage-800 dark:text-sage-200'
-                          : 'text-ink-800 dark:text-sage-50'
-                      )}
-                    >
-                      {p.name}
-                    </span>
-                    <span
-                      className={clsx(
-                        'rounded px-1 text-[9px] font-mono tabular-nums',
-                        active
-                          ? 'bg-sage-500/20 text-sage-700 dark:text-sage-300'
-                          : 'bg-ink-100 text-ink-500 dark:bg-ink-700/60 dark:text-ink-400'
-                      )}
-                    >
-                      {p.areaLabel}
-                    </span>
-                  </div>
-                  <span className="mt-0.5 text-[10px] font-mono text-ink-400">
-                    {p.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Wall & Structural Specs: 2-column Height & Thickness */}
         <div className="flex flex-col gap-2">
           <span className="text-[11px] font-semibold text-ink-700 dark:text-sage-100">
@@ -1058,6 +1122,12 @@ export function RoomPanel() {
               label="Wall height"
               badge="H"
               badgeColor="amber"
+              icon={
+                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="M8 3v10M5 6l3-3 3 3" />
+                  <path d="M2 13h12" strokeWidth="1.8" />
+                </svg>
+              }
               value={dims.height}
               min={ROOM_LIMITS.minHeight}
               max={ROOM_LIMITS.maxHeight}
@@ -1078,24 +1148,31 @@ export function RoomPanel() {
 
           {/* Quick Ceiling Presets */}
           <div className="flex items-center gap-1.5 pt-0.5">
-            <span className="text-[10px] text-ink-400 shrink-0">Ceiling:</span>
+            <div className="flex items-center gap-1 text-[10px] text-ink-400 shrink-0">
+              <svg viewBox="0 0 16 16" className="h-3 w-3 text-amber-500" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M2 3h12M8 13V5M5 8l3-3 3 3" />
+              </svg>
+              <span>Ceiling:</span>
+            </div>
             <div className="grid grid-cols-4 gap-1 flex-1">
               {ceilingPresets.map((cp) => {
                 const active = Math.abs(dims.height - cp.val) < 0.04;
                 return (
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.94 }}
+                    whileHover={{ y: -0.5 }}
                     key={cp.label}
                     type="button"
                     onClick={() => setRoomDimensions({ height: cp.val })}
                     className={clsx(
-                      'rounded-control border px-1.5 py-0.5 text-center text-[10px] font-medium transition-all',
+                      'rounded-control border px-1.5 py-0.5 text-center text-[10px] font-medium transition-all duration-150',
                       active
-                        ? 'border-amber-500/70 bg-amber-50 text-amber-800 shadow-subtle dark:bg-amber-950/50 dark:text-amber-200'
+                        ? 'border-amber-500/70 bg-amber-50 text-amber-800 shadow-subtle ring-1 ring-amber-500/20 dark:bg-amber-950/50 dark:text-amber-200 font-semibold'
                         : 'border-ink-200/80 bg-white/70 text-ink-600 hover:border-ink-300 dark:border-ink-800 dark:bg-ink-800/40 dark:text-ink-400'
                     )}
                   >
                     {cp.label}
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
@@ -1119,9 +1196,11 @@ export function RoomPanel() {
           ) : undefined
         }
       >
-        {/* Quick Add Action Bar with Gradient Badges */}
+        {/* Quick Add Action Bar with Animated Gradient Buttons */}
         <div className="grid grid-cols-2 gap-2">
-          <button
+          <motion.button
+            whileHover={{ scale: 1.02, y: -1 }}
+            whileTap={{ scale: 0.98 }}
             type="button"
             onClick={() => handleAddOpening('door', 'south')}
             className={clsx(
@@ -1134,8 +1213,10 @@ export function RoomPanel() {
               <Icon name="door" className="h-3.5 w-3.5" />
             </span>
             <span>+ Add Door</span>
-          </button>
-          <button
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02, y: -1 }}
+            whileTap={{ scale: 0.98 }}
             type="button"
             onClick={() => handleAddOpening('window', 'north')}
             className={clsx(
@@ -1148,48 +1229,54 @@ export function RoomPanel() {
               <Icon name="window" className="h-3.5 w-3.5" />
             </span>
             <span>+ Add Window</span>
-          </button>
+          </motion.button>
         </div>
 
-        {/* Filter Pills if multiple openings */}
+        {/* Filter Bar with Animated Spring Pills and Icons */}
         {doc.room.openings.length > 1 && (
-          <div className="flex items-center gap-1 rounded-control bg-ink-100/80 p-0.5 text-[11px] dark:bg-ink-800/80">
-            <button
-              type="button"
-              onClick={() => setOpeningFilter('all')}
-              className={clsx(
-                'flex-1 rounded py-1 font-medium transition-all',
-                openingFilter === 'all'
-                  ? 'bg-white text-ink-900 shadow-subtle dark:bg-ink-700 dark:text-sage-50'
-                  : 'text-ink-500 hover:text-ink-800 dark:text-ink-400'
-              )}
-            >
-              All ({doc.room.openings.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setOpeningFilter('door')}
-              className={clsx(
-                'flex-1 rounded py-1 font-medium transition-all',
-                openingFilter === 'door'
-                  ? 'bg-white text-ink-900 shadow-subtle dark:bg-ink-700 dark:text-sage-50'
-                  : 'text-ink-500 hover:text-ink-800 dark:text-ink-400'
-              )}
-            >
-              Doors ({doc.room.openings.filter((o) => o.kind === 'door').length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setOpeningFilter('window')}
-              className={clsx(
-                'flex-1 rounded py-1 font-medium transition-all',
-                openingFilter === 'window'
-                  ? 'bg-white text-ink-900 shadow-subtle dark:bg-ink-700 dark:text-sage-50'
-                  : 'text-ink-500 hover:text-ink-800 dark:text-ink-400'
-              )}
-            >
-              Windows ({doc.room.openings.filter((o) => o.kind === 'window').length})
-            </button>
+          <div className="relative flex items-center rounded-control bg-ink-100/80 p-0.5 text-[11px] dark:bg-ink-800/80">
+            {[
+              { id: 'all' as const, icon: 'layers' as const, label: 'All', count: doc.room.openings.length },
+              { id: 'door' as const, icon: 'door' as const, label: 'Doors', count: doc.room.openings.filter((o) => o.kind === 'door').length },
+              { id: 'window' as const, icon: 'window' as const, label: 'Windows', count: doc.room.openings.filter((o) => o.kind === 'window').length },
+            ].map((tab) => {
+              const active = openingFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setOpeningFilter(tab.id)}
+                  className={clsx(
+                    'relative flex flex-1 items-center justify-center gap-1.5 rounded py-1 font-medium transition-colors duration-150',
+                    active
+                      ? 'text-ink-900 dark:text-sage-50 font-semibold'
+                      : 'text-ink-500 hover:text-ink-800 dark:text-ink-400 dark:hover:text-sage-100'
+                  )}
+                >
+                  {active && (
+                    <motion.div
+                      layoutId="opening-filter-pill"
+                      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                      className="absolute inset-0 rounded bg-white shadow-subtle dark:bg-ink-700"
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center gap-1.5">
+                    <Icon name={tab.icon} className="h-3.5 w-3.5" />
+                    <span>{tab.label}</span>
+                    <span
+                      className={clsx(
+                        'rounded-full px-1.5 py-0.2 text-[9.5px] tabular-nums',
+                        active
+                          ? 'bg-sage-500/15 text-sage-700 dark:text-sage-300'
+                          : 'bg-ink-200/60 text-ink-500 dark:bg-ink-600/40 dark:text-ink-400'
+                      )}
+                    >
+                      {tab.count}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
 
