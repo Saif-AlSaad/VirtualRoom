@@ -9,7 +9,7 @@ import { shoppingList, totalCost } from '@/utils/placement';
 import { floorArea } from '@/utils/roomGeometry';
 import { formatArea } from '@/utils/units';
 import { Icon } from './Icon';
-import { Button, EmptyState, Segmented, TextField } from './primitives';
+import { Button, EmptyState, Segmented, Switch, TextField } from './primitives';
 import { ConfirmDialog, Modal } from './Modal';
 import { SHORTCUTS } from '@/hooks/useKeyboardShortcuts';
 
@@ -359,6 +359,8 @@ function AboutModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const saveStatus = useEditor((s) => s.saveStatus);
   const quality = useUI((s) => s.quality);
   const setQuality = useUI((s) => s.setQuality);
+  const postFx = useUI((s) => s.postFx);
+  const setPostFx = useUI((s) => s.setPostFx);
   const project = useMemo(() => (open ? toProject() : null), [open, toProject]);
 
   return (
@@ -398,6 +400,48 @@ function AboutModal({ open, onClose }: { open: boolean; onClose: () => void }) {
             ]}
             onChange={setQuality}
           />
+        </div>
+
+        {/* Studio Visual Fidelity & Post-Processing */}
+        <div className="flex flex-col gap-2.5 rounded-panel border border-ink-200/80 bg-ink-50/70 p-3 dark:border-ink-800 dark:bg-ink-800/40">
+          <div className="flex items-center gap-1.5 font-medium text-caption text-ink-800 dark:text-sage-50">
+            <Icon name="sparkle" className="h-4 w-4 text-sage-600 dark:text-sage-400" />
+            <span>Studio Visual Effects</span>
+          </div>
+          <Switch
+            label="Post-Processing Passes"
+            description="SSAO ambient occlusion, bloom glare, and environment reflections"
+            checked={postFx.enabled}
+            onChange={(enabled) => setPostFx({ enabled })}
+          />
+          {postFx.enabled && quality !== 'performance' && (
+            <div className="mt-1 flex flex-col gap-2 border-t border-ink-200/60 pt-2 text-caption dark:border-ink-800/60">
+              <Switch
+                label="Ambient Occlusion (SSAO)"
+                description="Contact shadows grounding furniture and wall corners"
+                checked={postFx.ssao}
+                onChange={(ssao) => setPostFx({ ssao })}
+              />
+              <Switch
+                label="Studio Reflections (PBR)"
+                description="Physically-based radiance on glossy and metallic finishes"
+                checked={postFx.reflections}
+                onChange={(reflections) => setPostFx({ reflections })}
+              />
+              <Switch
+                label="Architectural Bloom"
+                description="Soft glare on window daylight and warm light fixtures"
+                checked={postFx.bloom}
+                onChange={(bloom) => setPostFx({ bloom })}
+              />
+              <Switch
+                label="Cinematic Vignette"
+                description="Subtle photographic camera edge falloff"
+                checked={postFx.vignette}
+                onChange={(vignette) => setPostFx({ vignette })}
+              />
+            </div>
+          )}
         </div>
 
         <dl className="flex flex-col gap-1.5 text-caption">

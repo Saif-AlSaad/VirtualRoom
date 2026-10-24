@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { CameraPreset } from '@/types';
@@ -8,7 +8,7 @@ import { resolveCatalogItem } from '@/data/catalog';
 import { instanceRect } from '@/utils/placement';
 import { rectCorners } from '@/utils/collision';
 import { Icon } from './Icon';
-import { IconButton, Tooltip } from './primitives';
+import { IconButton, Switch, Tooltip } from './primitives';
 
 /**
  * Floating viewport overlays: contextual toolbar, minimap, camera presets and
@@ -413,6 +413,24 @@ export function ViewportControls() {
   const toggleMeasureTool = useUI((s) => s.toggleMeasureTool);
   const setMeasureToolActive = useUI((s) => s.setMeasureToolActive);
 
+  const quality = useUI((s) => s.quality);
+  const postFx = useUI((s) => s.postFx);
+  const setPostFx = useUI((s) => s.setPostFx);
+
+  const [fxOpen, setFxOpen] = useState(false);
+  const fxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!fxOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (fxRef.current && !fxRef.current.contains(e.target as Node)) {
+        setFxOpen(false);
+      }
+    };
+    window.addEventListener('pointerdown', handleClick);
+    return () => window.removeEventListener('pointerdown', handleClick);
+  }, [fxOpen]);
+
   if (presentation) return null;
 
   return (
@@ -436,6 +454,141 @@ export function ViewportControls() {
 
       <div className="pointer-events-auto absolute right-6 top-6 z-20 flex flex-col items-end gap-2">
         <div className="flex items-center gap-2">
+          {/* Visual Effects & Fidelity Studio popover */}
+          <div ref={fxRef} className="relative">
+            <div className="glass flex items-center p-1 rounded-panel shadow-subtle">
+              <IconButton
+                size="sm"
+                icon="sparkle"
+                label="Studio Visual Fidelity (SSAO, Bloom, Reflections)"
+                active={fxOpen || (postFx.enabled && quality !== 'performance')}
+                onClick={() => setFxOpen(!fxOpen)}
+              />
+            </div>
+
+            <AnimatePresence>
+              {fxOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                  transition={{ duration: 0.15 }}
+                  className="glass absolute right-0 top-full z-40 mt-2 w-72 rounded-panel border border-ink-200/90 bg-white/95 p-3.5 shadow-elevated backdrop-blur-md dark:border-ink-700/90 dark:bg-ink-900/95"
+                >
+                  <div className="mb-3 flex items-center justify-between border-b border-ink-200 pb-2.5 dark:border-ink-800">
+                    <div className="flex items-center gap-1.5">
+                      <Icon name="sparkle" className="h-4 w-4 text-sage-600 dark:text-sage-400" />
+                      <span className="text-caption font-semibold text-ink-900 dark:text-sage-50">
+                        Studio Visual Fidelity
+                      </span>
+                    </div>
+                    <span
+                      className={clsx(
+                        'rounded-full px-1.5 py-0.5 text-[10px] font-medium',
+                        postFx.enabled && quality !== 'performance'
+                          ? 'bg-sage-600/10 text-sage-700 dark:bg-sage-500/20 dark:text-sage-300'
+                          : 'bg-ink-200/50 text-ink-500 dark:bg-ink-800 dark:text-ink-400'
+                      )}
+                    >
+                      {quality === 'performance'
+                        ? 'Fast Mode'
+                        : postFx.enabled
+                          ? 'Active'
+                          : 'Disabled'}
+                    </span>
+                  </div>
+
+                  {quality === 'performance' && (
+                    <div className="mb-3 rounded-control bg-warn/10 p-2 text-[11px] leading-snug text-warn">
+                      Rendering quality is set to Fast. Set to Balanced or High in About & diagnostics to enable post-processing.
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-3 text-caption">
+                    <Switch
+                      label="Studio Post-Processing"
+                      description="Master switch for photorealistic camera passes"
+                      checked={postFx.enabled}
+                      onChange={(enabled) => setPostFx({ enabled })}
+                    />
+
+                    {postFx.enabled && quality !== 'performance' && (
+                      <div className="flex flex-col gap-2.5 border-t border-ink-200/60 pt-2.5 dark:border-ink-800/60">
+                        <Switch
+                          label="Ambient Occlusion (SSAO)"
+                          description="Grounds furniture & corners with contact shadows"
+                          checked={postFx.ssao}
+                          onChange={(ssao) => setPostFx({ ssao })}
+                        />
+
+                        {postFx.ssao && (
+                          <div className="flex items-center justify-between pl-1">
+                            <span className="text-[11px] text-ink-500 dark:text-ink-400">AO Strength</span>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="range"
+                                min={0.5}
+                                max={2.5}
+                                step={0.1}
+                                value={postFx.aoIntensity}
+                                onChange={(e) => setPostFx({ aoIntensity: Number(e.target.value) })}
+                                className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-ink-200 accent-sage-600 dark:bg-ink-700"
+                              />
+                              <span className="w-6 text-right text-[10px] tabular-nums text-ink-400">
+                                {postFx.aoIntensity.toFixed(1)}x
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        <Switch
+                          label="Studio Reflections (PBR)"
+                          description="Physically-based radiance on glossy & metallic surfaces"
+                          checked={postFx.reflections}
+                          onChange={(reflections) => setPostFx({ reflections })}
+                        />
+
+                        <Switch
+                          label="Architectural Bloom"
+                          description="Soft light spill on windows & glowing lamps"
+                          checked={postFx.bloom}
+                          onChange={(bloom) => setPostFx({ bloom })}
+                        />
+
+                        {postFx.bloom && (
+                          <div className="flex items-center justify-between pl-1">
+                            <span className="text-[11px] text-ink-500 dark:text-ink-400">Bloom Glow</span>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="range"
+                                min={0.1}
+                                max={1.5}
+                                step={0.05}
+                                value={postFx.bloomIntensity}
+                                onChange={(e) => setPostFx({ bloomIntensity: Number(e.target.value) })}
+                                className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-ink-200 accent-sage-600 dark:bg-ink-700"
+                              />
+                              <span className="w-6 text-right text-[10px] tabular-nums text-ink-400">
+                                {postFx.bloomIntensity.toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        <Switch
+                          label="Cinematic Vignette"
+                          description="Subtle camera lens edge falloff"
+                          checked={postFx.vignette}
+                          onChange={(vignette) => setPostFx({ vignette })}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           <div className="glass flex items-center p-1 rounded-panel shadow-subtle">
             <IconButton
               size="sm"

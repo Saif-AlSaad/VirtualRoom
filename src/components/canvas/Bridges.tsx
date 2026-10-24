@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import * as THREE from 'three';
 import { useThree } from '@react-three/fiber';
-import { registerCapture } from '@/utils/capture';
+import { getComposer, registerCapture } from '@/utils/capture';
 import { registerFloorPicker } from '@/utils/pointer';
 
 /**
@@ -21,20 +21,35 @@ export function Bridges() {
       const clamped = Math.min(Math.max(scale, 1), 4);
       const prevPixelRatio = gl.getPixelRatio();
       const target = Math.min(clamped, 4);
+      const composer = getComposer();
+
       try {
         // Render once at the requested pixel ratio. `preserveDrawingBuffer` is
         // set on the Canvas, but the buffer is only guaranteed valid right
         // after a draw — so we force one rather than trusting the last frame.
         gl.setPixelRatio(target);
         gl.setSize(size.width, size.height, false);
-        gl.render(scene, camera);
+
+        if (composer) {
+          composer.setSize(size.width * target, size.height * target);
+          composer.render(0.016);
+        } else {
+          gl.render(scene, camera);
+        }
+
         return gl.domElement.toDataURL('image/png');
       } catch {
         return null;
       } finally {
         gl.setPixelRatio(prevPixelRatio);
         gl.setSize(size.width, size.height, false);
-        gl.render(scene, camera);
+
+        if (composer) {
+          composer.setSize(size.width * prevPixelRatio, size.height * prevPixelRatio);
+          composer.render(0.016);
+        } else {
+          gl.render(scene, camera);
+        }
       }
     });
     return () => registerCapture(null);

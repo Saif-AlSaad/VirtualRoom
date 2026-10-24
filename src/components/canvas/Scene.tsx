@@ -23,6 +23,8 @@ import {
 } from './Guides';
 import { MeasureTool } from './MeasureTool';
 import { WallHandles } from './WallHandles';
+import { EnvironmentReflections } from './EnvironmentReflections';
+import { PostProcessing } from './PostProcessing';
 
 /**
  * The 3D viewport.
@@ -65,6 +67,7 @@ function SceneContents() {
       <DragController />
       <CameraRig dims={dims} />
       <Lighting dims={dims} openings={doc.room.openings} />
+      <EnvironmentReflections />
       {quality === 'high' && <SoftShadows size={26} samples={12} focus={0.8} />}
 
       {/* Clicking empty space deselects. A large invisible backdrop is more
@@ -139,6 +142,8 @@ function SceneContents() {
           <WallHandles />
         </>
       )}
+
+      <PostProcessing />
     </>
   );
 }
