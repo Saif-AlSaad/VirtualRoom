@@ -10,8 +10,7 @@ import {
   toDisplay,
 } from '@/utils/furnitureSizing';
 import { parseLength, unitLabel } from '@/utils/units';
-import { Icon } from './Icon';
-import { NumberField, Section, Tooltip } from './primitives';
+import { NumberField, Section } from './primitives';
 
 interface Props {
   instance: FurnitureInstance;
@@ -32,7 +31,8 @@ export function FurnitureDimensionsEditor({
 }: Props) {
   // Local unit preference for dimension customization; initialized to project unit
   const [activeUnit, setActiveUnit] = useState<Unit>(projectUnit);
-  const [lockRatio, setLockRatio] = useState<boolean>(true);
+  // Default to independent dimensions so changing width, depth, or height does not affect the others
+  const [lockRatio, setLockRatio] = useState<boolean>(false);
 
   // Sync with project unit if it changes
   useEffect(() => {
@@ -185,9 +185,9 @@ export function FurnitureDimensionsEditor({
 
   return (
     <Section title="Dimensions & Scale" icon="ruler" defaultOpen={true}>
-      {/* Unit Selector & Aspect Ratio Lock Bar */}
-      <div className="flex items-center justify-between gap-2 border-b border-ink-100 pb-2.5 dark:border-ink-800">
-        <div className="flex items-center gap-1.5">
+      {/* Unit Selector & Sizing Mode Bar */}
+      <div className="flex flex-col gap-2 border-b border-ink-100 pb-2.5 dark:border-ink-800">
+        <div className="flex items-center justify-between gap-2">
           <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
             Unit:
           </span>
@@ -225,34 +225,43 @@ export function FurnitureDimensionsEditor({
           </div>
         </div>
 
-        {/* Aspect Ratio Lock Toggle */}
-        <Tooltip
-          content={
-            lockRatio
-              ? 'Lock aspect ratio (proportional resize)'
-              : 'Unlock aspect ratio (independent axis stretch)'
-          }
-          side="top"
-        >
-          <button
-            type="button"
-            disabled={disabled}
-            aria-pressed={lockRatio}
-            onClick={() => setLockRatio((prev) => !prev)}
-            className={clsx(
-              'flex items-center gap-1.5 rounded-control border px-2 py-1 text-[11px] font-medium transition-colors duration-150',
-              lockRatio
-                ? 'border-sage-300 bg-sage-50 text-sage-800 dark:border-sage-800/80 dark:bg-sage-950/40 dark:text-sage-200'
-                : 'border-ink-200 bg-white text-ink-500 hover:text-ink-800 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-400 dark:hover:text-ink-200'
-            )}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
+            Sizing mode:
+          </span>
+          <div
+            role="group"
+            aria-label="Sizing mode selector"
+            className="inline-flex rounded-control border border-ink-200 bg-ink-50 p-0.5 dark:border-ink-700 dark:bg-ink-800"
           >
-            <Icon
-              name={lockRatio ? 'link' : 'unlink'}
-              className="h-3.5 w-3.5"
-            />
-            <span>{lockRatio ? 'Ratio locked' : 'Free stretch'}</span>
-          </button>
-        </Tooltip>
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => setLockRatio(false)}
+              className={clsx(
+                'rounded-[3px] px-2.5 py-0.5 text-[11px] font-semibold transition-all duration-150',
+                !lockRatio
+                  ? 'bg-sage-600 text-white shadow-subtle dark:bg-sage-500'
+                  : 'text-ink-600 hover:text-ink-900 dark:text-ink-300 dark:hover:text-white'
+              )}
+            >
+              Independent
+            </button>
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => setLockRatio(true)}
+              className={clsx(
+                'rounded-[3px] px-2.5 py-0.5 text-[11px] font-semibold transition-all duration-150',
+                lockRatio
+                  ? 'bg-sage-600 text-white shadow-subtle dark:bg-sage-500'
+                  : 'text-ink-600 hover:text-ink-900 dark:text-ink-300 dark:hover:text-white'
+              )}
+            >
+              Linked
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Dimension Inputs */}

@@ -35,7 +35,7 @@ describe('FurnitureDimensionsEditor component', () => {
     note: '',
   };
 
-  it('renders all three dimension fields and scale ratio section', () => {
+  it('renders all three dimension fields, unit selector, and sizing mode', () => {
     const handleLiveChange = vi.fn();
     const handleCommit = vi.fn();
 
@@ -52,7 +52,90 @@ describe('FurnitureDimensionsEditor component', () => {
     expect(screen.getByText('Width (W)')).toBeInTheDocument();
     expect(screen.getByText('Depth (D)')).toBeInTheDocument();
     expect(screen.getByText('Height (H)')).toBeInTheDocument();
+    expect(screen.getByText('Independent')).toBeInTheDocument();
+    expect(screen.getByText('Linked')).toBeInTheDocument();
     expect(screen.getByText('Scale Ratio')).toBeInTheDocument();
+  });
+
+  it('resizes width independently without affecting depth and height', () => {
+    const handleCommit = vi.fn();
+
+    render(
+      <FurnitureDimensionsEditor
+        instance={sampleInstance}
+        catalog={sampleCatalog}
+        projectUnit="m"
+        onLiveChange={vi.fn()}
+        onCommit={handleCommit}
+      />
+    );
+
+    const inputs = screen.getAllByRole('textbox');
+    const widthInput = inputs[0] as HTMLInputElement;
+
+    // Change width from 2.00 to 3.00 (1.5x)
+    fireEvent.change(widthInput, { target: { value: '3.00' } });
+    fireEvent.blur(widthInput);
+
+    // Only scale.x changes to 1.5; scale.y and scale.z remain 1.0
+    expect(handleCommit).toHaveBeenCalledWith(
+      { x: 1.5, y: 1.0, z: 1.0 },
+      'Resize width'
+    );
+  });
+
+  it('resizes depth independently without affecting width and height', () => {
+    const handleCommit = vi.fn();
+
+    render(
+      <FurnitureDimensionsEditor
+        instance={sampleInstance}
+        catalog={sampleCatalog}
+        projectUnit="m"
+        onLiveChange={vi.fn()}
+        onCommit={handleCommit}
+      />
+    );
+
+    const inputs = screen.getAllByRole('textbox');
+    const depthInput = inputs[1] as HTMLInputElement;
+
+    // Change depth from 1.00 to 1.50 (1.5x)
+    fireEvent.change(depthInput, { target: { value: '1.50' } });
+    fireEvent.blur(depthInput);
+
+    // Only scale.z changes to 1.5; scale.x and scale.y remain 1.0
+    expect(handleCommit).toHaveBeenCalledWith(
+      { x: 1.0, y: 1.0, z: 1.5 },
+      'Resize depth'
+    );
+  });
+
+  it('resizes height independently without affecting width and depth', () => {
+    const handleCommit = vi.fn();
+
+    render(
+      <FurnitureDimensionsEditor
+        instance={sampleInstance}
+        catalog={sampleCatalog}
+        projectUnit="m"
+        onLiveChange={vi.fn()}
+        onCommit={handleCommit}
+      />
+    );
+
+    const inputs = screen.getAllByRole('textbox');
+    const heightInput = inputs[2] as HTMLInputElement;
+
+    // Change height from 0.80 to 1.20 (1.5x)
+    fireEvent.change(heightInput, { target: { value: '1.20' } });
+    fireEvent.blur(heightInput);
+
+    // Only scale.y changes to 1.5; scale.x and scale.z remain 1.0
+    expect(handleCommit).toHaveBeenCalledWith(
+      { x: 1.0, y: 1.5, z: 1.0 },
+      'Resize height'
+    );
   });
 
   it('toggles between metres and feet', () => {
@@ -78,7 +161,7 @@ describe('FurnitureDimensionsEditor component', () => {
     expect(screen.getAllByText(/≈ 2.00 m/)[0]).toBeInTheDocument();
   });
 
-  it('toggles aspect ratio lock state', () => {
+  it('switches between Independent and Linked sizing modes', () => {
     render(
       <FurnitureDimensionsEditor
         instance={sampleInstance}
@@ -89,14 +172,15 @@ describe('FurnitureDimensionsEditor component', () => {
       />
     );
 
-    const lockToggle = screen.getByRole('button', { name: /ratio locked/i });
-    expect(lockToggle).toHaveAttribute('aria-pressed', 'true');
+    const independentBtn = screen.getByRole('button', { name: 'Independent' });
+    const linkedBtn = screen.getByRole('button', { name: 'Linked' });
 
-    fireEvent.click(lockToggle);
-    expect(screen.getByRole('button', { name: /free stretch/i })).toHaveAttribute(
-      'aria-pressed',
-      'false'
-    );
+    // Independent is active by default
+    expect(independentBtn.className).toContain('bg-sage-600');
+
+    // Switch to Linked
+    fireEvent.click(linkedBtn);
+    expect(linkedBtn.className).toContain('bg-sage-600');
   });
 
   it('applies quick scale preset buttons', () => {
