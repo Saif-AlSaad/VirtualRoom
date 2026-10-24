@@ -18,6 +18,8 @@ export interface SnapSettings {
   rotationStep: number;
   /** Distance within which a snap engages, in metres. */
   threshold: number;
+  /** Automatically rotate wall-hugging furniture to face into the room when near walls. */
+  autoRotate?: boolean;
 }
 
 export const DEFAULT_SNAP: SnapSettings = {
@@ -27,6 +29,7 @@ export const DEFAULT_SNAP: SnapSettings = {
   furniture: true,
   rotationStep: 15,
   threshold: 0.25,
+  autoRotate: true,
 };
 
 /** A line the viewport draws to show an active alignment. */
@@ -66,6 +69,11 @@ export function angleDelta(a: number, b: number): number {
  * Priority is deliberate: walls beat furniture edges, which beat the grid.
  * A user dragging a wardrobe toward a wall means "against the wall", and a
  * 10 cm grid should never pull it 5 cm off the plaster.
+ *
+ * Smart Wall-Hugger Auto-Rotation:
+ * When an object approaches a room wall within the snapping threshold, it
+ * automatically orients its back flush to the wall with its front facing
+ * into the room (North wall: 0°, South wall: 180°, West wall: 90°, East wall: 270°).
  */
 export function computeSnap(
   desired: Rect,
@@ -90,30 +98,111 @@ export function computeSnap(
   const hl = dims.length / 2;
   const t = settings.threshold;
 
-  // --- Walls -------------------------------------------------------------
+  // --- Walls (with Smart Wall-Hugger Auto-Rotation) ------------------------
   if (settings.wall) {
-    if (Math.abs(box.minX - -hw) < t) {
-      cx += -hw - box.minX;
-      snappedX = true;
-      snappedToWall = true;
-      guides.push({ axis: 'x', value: -hw, kind: 'wall' });
-    } else if (Math.abs(box.maxX - hw) < t) {
-      cx -= box.maxX - hw;
-      snappedX = true;
-      snappedToWall = true;
-      guides.push({ axis: 'x', value: hw, kind: 'wall' });
-    }
+    if (settings.autoRotate !== false) {
+      const distWest = Math.abs(box.minX - -hw);
+      const distEast = Math.abs(box.maxX - hw);
+      const distNorth = Math.abs(box.minZ - -hl);
+      const distSouth = Math.abs(box.maxZ - hl);
 
-    if (Math.abs(box.minZ - -hl) < t) {
-      cz += -hl - box.minZ;
-      snappedZ = true;
-      snappedToWall = true;
-      guides.push({ axis: 'z', value: -hl, kind: 'wall' });
-    } else if (Math.abs(box.maxZ - hl) < t) {
-      cz -= box.maxZ - hl;
-      snappedZ = true;
-      snappedToWall = true;
-      guides.push({ axis: 'z', value: hl, kind: 'wall' });
+      const minDist = Math.min(distWest, distEast, distNorth, distSouth);
+
+      if (minDist < t) {
+        if (minDist === distNorth) {
+          rotation = 0;
+          cz = -hl + desired.d / 2;
+          snappedZ = true;
+          snappedToWall = true;
+          guides.push({ axis: 'z', value: -hl, kind: 'wall' });
+
+          const newBox = rectAABB({ ...desired, cx, cz, rot: rotation });
+          if (Math.abs(newBox.minX - -hw) < t) {
+            cx += -hw - newBox.minX;
+            snappedX = true;
+            guides.push({ axis: 'x', value: -hw, kind: 'wall' });
+          } else if (Math.abs(newBox.maxX - hw) < t) {
+            cx -= newBox.maxX - hw;
+            snappedX = true;
+            guides.push({ axis: 'x', value: hw, kind: 'wall' });
+          }
+        } else if (minDist === distSouth) {
+          rotation = 180;
+          cz = hl - desired.d / 2;
+          snappedZ = true;
+          snappedToWall = true;
+          guides.push({ axis: 'z', value: hl, kind: 'wall' });
+
+          const newBox = rectAABB({ ...desired, cx, cz, rot: rotation });
+          if (Math.abs(newBox.minX - -hw) < t) {
+            cx += -hw - newBox.minX;
+            snappedX = true;
+            guides.push({ axis: 'x', value: -hw, kind: 'wall' });
+          } else if (Math.abs(newBox.maxX - hw) < t) {
+            cx -= newBox.maxX - hw;
+            snappedX = true;
+            guides.push({ axis: 'x', value: hw, kind: 'wall' });
+          }
+        } else if (minDist === distWest) {
+          rotation = 90;
+          cx = -hw + desired.d / 2;
+          snappedX = true;
+          snappedToWall = true;
+          guides.push({ axis: 'x', value: -hw, kind: 'wall' });
+
+          const newBox = rectAABB({ ...desired, cx, cz, rot: rotation });
+          if (Math.abs(newBox.minZ - -hl) < t) {
+            cz += -hl - newBox.minZ;
+            snappedZ = true;
+            guides.push({ axis: 'z', value: -hl, kind: 'wall' });
+          } else if (Math.abs(newBox.maxZ - hl) < t) {
+            cz -= newBox.maxZ - hl;
+            snappedZ = true;
+            guides.push({ axis: 'z', value: hl, kind: 'wall' });
+          }
+        } else if (minDist === distEast) {
+          rotation = 270;
+          cx = hw - desired.d / 2;
+          snappedX = true;
+          snappedToWall = true;
+          guides.push({ axis: 'x', value: hw, kind: 'wall' });
+
+          const newBox = rectAABB({ ...desired, cx, cz, rot: rotation });
+          if (Math.abs(newBox.minZ - -hl) < t) {
+            cz += -hl - newBox.minZ;
+            snappedZ = true;
+            guides.push({ axis: 'z', value: -hl, kind: 'wall' });
+          } else if (Math.abs(newBox.maxZ - hl) < t) {
+            cz -= newBox.maxZ - hl;
+            snappedZ = true;
+            guides.push({ axis: 'z', value: hl, kind: 'wall' });
+          }
+        }
+      }
+    } else {
+      if (Math.abs(box.minX - -hw) < t) {
+        cx += -hw - box.minX;
+        snappedX = true;
+        snappedToWall = true;
+        guides.push({ axis: 'x', value: -hw, kind: 'wall' });
+      } else if (Math.abs(box.maxX - hw) < t) {
+        cx -= box.maxX - hw;
+        snappedX = true;
+        snappedToWall = true;
+        guides.push({ axis: 'x', value: hw, kind: 'wall' });
+      }
+
+      if (Math.abs(box.minZ - -hl) < t) {
+        cz += -hl - box.minZ;
+        snappedZ = true;
+        snappedToWall = true;
+        guides.push({ axis: 'z', value: -hl, kind: 'wall' });
+      } else if (Math.abs(box.maxZ - hl) < t) {
+        cz -= box.maxZ - hl;
+        snappedZ = true;
+        snappedToWall = true;
+        guides.push({ axis: 'z', value: hl, kind: 'wall' });
+      }
     }
   }
 

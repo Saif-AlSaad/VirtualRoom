@@ -204,15 +204,26 @@ export function DragController() {
         for (const target of drag.targets) {
           const f = d.furniture.find((x) => x.instanceId === target.id);
           if (!f || f.locked) continue;
+          const isPrimary = target.id === primary.id;
           const next =
-            target.id === primary.id
+            isPrimary
               ? snapped.position
               : { x: f.position.x + delta.x, z: f.position.z + delta.z };
+
+          const targetRotation =
+            isPrimary && settings.autoRotate !== false && snapped.snappedToWall
+              ? snapped.rotation
+              : f.rotation;
+
           f.position = clampRectToRoom(
-            { ...instanceRect(f), cx: next.x, cz: next.z },
+            { ...instanceRect(f), cx: next.x, cz: next.z, rot: targetRotation },
             dims.width,
             dims.length
           );
+
+          if (isPrimary && settings.autoRotate !== false && snapped.snappedToWall) {
+            f.rotation = snapped.rotation;
+          }
         }
       });
 

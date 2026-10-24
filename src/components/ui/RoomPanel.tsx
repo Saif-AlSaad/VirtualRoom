@@ -1328,6 +1328,12 @@ export function RoomPanel() {
         <div className="h-px bg-ink-200 dark:bg-ink-800" />
         <Switch label="Snap to walls" checked={snap.wall} onChange={(wall) => setSnap({ wall })} />
         <Switch
+          label="Auto-align to walls"
+          description="Rotate furniture to face inward when near walls"
+          checked={snap.autoRotate ?? true}
+          onChange={(autoRotate) => setSnap({ autoRotate })}
+        />
+        <Switch
           label="Snap to furniture"
           checked={snap.furniture}
           onChange={(furniture) => setSnap({ furniture })}
