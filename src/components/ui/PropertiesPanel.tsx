@@ -11,6 +11,7 @@ import { formatLength, fromDisplay, parseLength, toDisplay, unitLabel } from '@/
 import { Icon } from './Icon';
 import { Button, ColorPicker, EmptyState, IconButton, NumberField, Section, Switch, Tooltip } from './primitives';
 import { RoomPanel } from './RoomPanel';
+import { FurnitureDimensionsEditor } from './FurnitureDimensionsEditor';
 
 /**
  * Right-hand inspector for the current selection.
@@ -434,7 +435,6 @@ function SelectionInspector() {
 
   const catalog = resolveCatalogItem(instance.catalogId);
   const size = instanceSize(instance, catalog);
-  const [minScale, maxScale] = catalog.scaleRange;
   const halfW = doc.room.dimensions.width / 2;
   const halfL = doc.room.dimensions.length / 2;
 
@@ -600,29 +600,20 @@ function SelectionInspector() {
           ))}
         </div>
 
-        {minScale !== maxScale && (
-          <NumberField
-            label="Scale"
-            suffix="%"
-            value={Math.round(instance.scale.x * 100)}
-            min={Math.round(minScale * 100)}
-            max={Math.round(maxScale * 100)}
-            step={1}
-            disabled={instance.locked}
-            format={(v) => String(Math.round(v))}
-            onChange={(v) => {
-              const s = v / 100;
-              livePatch({ scale: { x: s, y: s, z: s } });
-            }}
-            onCommit={(v) => {
-              const s = v / 100;
-              beginGesture('Scale item');
-              livePatch({ scale: { x: s, y: s, z: s } });
-              endGesture();
-            }}
-          />
-        )}
       </Section>
+ 
+      <FurnitureDimensionsEditor
+        instance={instance}
+        catalog={catalog}
+        projectUnit={unit}
+        disabled={instance.locked}
+        onLiveChange={(scale) => livePatch({ scale })}
+        onCommit={(scale, label) => {
+          beginGesture(label);
+          livePatch({ scale });
+          endGesture();
+        }}
+      />
 
       <Section title="Appearance" icon="sparkle">
         {catalog.finishes.length > 1 && (
@@ -810,10 +801,17 @@ export function PropertiesPanel() {
           aria-label="Properties"
           className="z-20 flex h-full w-[320px] shrink-0 flex-col border-l border-ink-200 bg-white dark:border-ink-800 dark:bg-ink-900"
         >
-          <div className="flex items-center justify-between border-b border-ink-200 px-4 py-2 dark:border-ink-800">
-            <h2 className="text-caption font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
-              {selection.length === 0 ? 'Room' : 'Properties'}
-            </h2>
+          <div className="flex items-center justify-between border-b border-ink-200/80 px-4 py-2.5 dark:border-ink-800 bg-ink-50/40 dark:bg-ink-900/50 backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-control bg-sage-500/15 text-sage-700 dark:bg-sage-500/25 dark:text-sage-300">
+                <Icon name={selection.length === 0 ? 'home' : 'cube'} className="h-3.5 w-3.5" />
+              </span>
+              <div>
+                <h2 className="text-caption font-bold tracking-tight text-ink-900 dark:text-sage-50">
+                  {selection.length === 0 ? 'Room Architecture' : 'Item Properties'}
+                </h2>
+              </div>
+            </div>
             <IconButton
               size="sm"
               icon="chevron-right"

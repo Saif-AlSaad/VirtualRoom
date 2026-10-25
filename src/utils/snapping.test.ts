@@ -106,4 +106,52 @@ describe('computeSnap', () => {
     const result = computeSnap(rect(0, 0, 1, 1, 43), [], dims, DEFAULT_SNAP);
     expect(result.rotation).toBe(45);
   });
+
+  it('auto-rotates wall-hugging furniture to 0° flush against the North wall', () => {
+    // North wall is at z = -3. An item with w=1.2, d=0.6 dragged near z=-2.5
+    const item = rect(0, -2.5, 1.2, 0.6, 90);
+    const result = computeSnap(item, [], dims, DEFAULT_SNAP);
+    expect(result.snappedToWall).toBe(true);
+    expect(result.rotation).toBe(0);
+    expect(result.position.z).toBeCloseTo(-2.7); // -3.0 + 0.6/2
+  });
+
+  it('auto-rotates wall-hugging furniture to 180° flush against the South wall', () => {
+    // South wall is at z = 3. An item with w=1.2, d=0.6 dragged near z=2.5
+    const item = rect(0, 2.5, 1.2, 0.6, 0);
+    const result = computeSnap(item, [], dims, DEFAULT_SNAP);
+    expect(result.snappedToWall).toBe(true);
+    expect(result.rotation).toBe(180);
+    expect(result.position.z).toBeCloseTo(2.7); // 3.0 - 0.6/2
+  });
+
+  it('auto-rotates wall-hugging furniture to 90° flush against the West wall', () => {
+    // West wall is at x = -2. An item with w=1.2, d=0.6 dragged near x=-1.5
+    const item = rect(-1.5, 0, 1.2, 0.6, 0);
+    const result = computeSnap(item, [], dims, DEFAULT_SNAP);
+    expect(result.snappedToWall).toBe(true);
+    expect(result.rotation).toBe(90);
+    expect(result.position.x).toBeCloseTo(-1.7); // -2.0 + 0.6/2
+  });
+
+  it('auto-rotates wall-hugging furniture to 270° flush against the East wall', () => {
+    // East wall is at x = 2. An item with w=1.2, d=0.6 dragged near x=1.5
+    const item = rect(1.5, 0, 1.2, 0.6, 0);
+    const result = computeSnap(item, [], dims, DEFAULT_SNAP);
+    expect(result.snappedToWall).toBe(true);
+    expect(result.rotation).toBe(270);
+    expect(result.position.x).toBeCloseTo(1.7); // 2.0 - 0.6/2
+  });
+
+  it('preserves manual rotation when autoRotate is explicitly false', () => {
+    // East wall is at x = 2. Item at x=1.5 has right edge at 1.5 + 0.6 = 2.1 (0.1 from wall)
+    const item = rect(1.5, 0, 1.2, 0.6, 45);
+    const result = computeSnap(item, [], dims, {
+      ...DEFAULT_SNAP,
+      autoRotate: false,
+      rotationStep: 0,
+    });
+    expect(result.snappedToWall).toBe(true);
+    expect(result.rotation).toBe(45);
+  });
 });

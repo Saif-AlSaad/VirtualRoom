@@ -472,7 +472,7 @@ third-party 3D assets, and no model licences to track. Inter is loaded from
 
 **Saif Al Saad**
 
-Software Engineering Student
+**Software Engineering Student**
 
 Daffodil International University
 

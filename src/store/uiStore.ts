@@ -36,6 +36,26 @@ export type ModalId =
   | 'import'
   | 'about';
 
+export interface PostFxSettings {
+  enabled: boolean;
+  ssao: boolean;
+  bloom: boolean;
+  reflections: boolean;
+  vignette: boolean;
+  aoIntensity: number;
+  bloomIntensity: number;
+}
+
+export const DEFAULT_POST_FX: PostFxSettings = {
+  enabled: true,
+  ssao: true,
+  bloom: true,
+  reflections: true,
+  vignette: true,
+  aoIntensity: 1.5,
+  bloomIntensity: 0.45,
+};
+
 /** Persisted slice of the UI store. */
 interface Preferences {
   theme: 'light' | 'dark' | 'system';
@@ -45,6 +65,7 @@ interface Preferences {
   showClearance: boolean;
   showGrid: boolean;
   quality: 'high' | 'balanced' | 'performance';
+  postFx: PostFxSettings;
   soundEnabled: boolean;
   favorites: string[];
   recentCatalog: string[];
@@ -59,6 +80,7 @@ const DEFAULT_PREFS: Preferences = {
   showClearance: false,
   showGrid: true,
   quality: 'high',
+  postFx: DEFAULT_POST_FX,
   soundEnabled: false,
   favorites: [],
   recentCatalog: [],
@@ -138,6 +160,7 @@ export interface UIState extends Preferences {
   setShowClearance: (on: boolean) => void;
   setShowGrid: (on: boolean) => void;
   setQuality: (q: Preferences['quality']) => void;
+  setPostFx: (patch: Partial<PostFxSettings>) => void;
   setSoundEnabled: (on: boolean) => void;
   toggleFavorite: (catalogId: string) => void;
   noteCatalogUse: (catalogId: string) => void;
@@ -155,6 +178,7 @@ const PERSISTED_KEYS: Array<keyof Preferences> = [
   'showClearance',
   'showGrid',
   'quality',
+  'postFx',
   'soundEnabled',
   'favorites',
   'recentCatalog',
@@ -185,6 +209,7 @@ export const useUI = create<UIState>((set, get) => ({
   ...loaded,
   // Merge defensively: a settings blob from an older build may be missing keys.
   snap: { ...DEFAULT_SNAP, ...(loaded.snap ?? {}) },
+  postFx: { ...DEFAULT_POST_FX, ...(loaded.postFx ?? {}) },
   favorites: Array.isArray(loaded.favorites) ? loaded.favorites : [],
   recentCatalog: Array.isArray(loaded.recentCatalog) ? loaded.recentCatalog : [],
 
@@ -343,6 +368,10 @@ export const useUI = create<UIState>((set, get) => ({
   },
   setQuality: (quality) => {
     set({ quality });
+    persist(get());
+  },
+  setPostFx: (patch) => {
+    set((s) => ({ postFx: { ...s.postFx, ...patch } }));
     persist(get());
   },
   setSoundEnabled: (soundEnabled) => {

@@ -212,8 +212,12 @@ export function CameraRig({ dims }: Props) {
       // External look delta (from virtual look pad / touch drag)
       const lookDelta = useUI.getState().consumeWalkLookDelta();
       if (lookDelta.yaw !== 0 || lookDelta.pitch !== 0) {
+        if (lookDelta.pitch === -999) {
+          state.pitch = 0;
+        } else {
+          state.pitch = THREE.MathUtils.clamp(state.pitch + lookDelta.pitch, -1.2, 1.2);
+        }
         state.yaw += lookDelta.yaw;
-        state.pitch = THREE.MathUtils.clamp(state.pitch + lookDelta.pitch, -1.2, 1.2);
       }
 
       // Forward/backward & strafe from keyboard + virtual joystick
@@ -232,53 +236,62 @@ export function CameraRig({ dims }: Props) {
         const len = Math.hypot(forward, strafe);
         const fx = (forward / Math.max(len, 1)) * speed * dt;
         const sx = (strafe / Math.max(len, 1)) * speed * dt;
-        let nextPos = {
-          x: state.position.x + Math.sin(state.yaw) * fx + Math.cos(state.yaw) * sx,
-          z: state.position.z + Math.cos(state.yaw) * fx - Math.sin(state.yaw) * sx,
-        };
+        const dx = Math.sin(state.yaw) * fx + Math.cos(state.yaw) * sx;
+        const dz = Math.cos(state.yaw) * fx - Math.sin(state.yaw) * sx;
 
-        // Solid obstacle collision (interior partitions & collidable furniture)
+        // Solid obstacle collision with multi-axis surface sliding (never sticks on diagonal walk)
         const doc = useEditor.getState().doc;
         const walkerRadius = 0.25;
+        const margin = 0.25;
 
-        // 1. Partitions
+        // 1. Move along X axis & resolve collision (allows effortless sliding along walls/furniture)
+        let nextX = { x: state.position.x + dx, z: state.position.z };
         for (const p of doc.room.partitions ?? []) {
-          nextPos = resolveCircleRectCollision(nextPos, walkerRadius, partitionRect(p));
+          nextX = resolveCircleRectCollision(nextX, walkerRadius, partitionRect(p));
         }
-
-        // 2. Collidable furniture (exclude floor rugs, low flat items)
         for (const f of doc.furniture) {
           if (!f.visible) continue;
           const cat = resolveCatalogItem(f.catalogId);
           if (!cat.collides) continue;
           const elev = f.elevation ?? cat.elevation;
           const h = cat.size.h * f.scale.y;
-          // Walker body height is ~0.2m to 1.8m
           if (elev > 1.8 || elev + h < 0.2) continue;
-          nextPos = resolveCircleRectCollision(nextPos, walkerRadius, instanceRect(f, cat));
+          nextX = resolveCircleRectCollision(nextX, walkerRadius, instanceRect(f, cat));
         }
-
-        // Keep the walker inside the room, 250 mm off the outer walls.
-        const margin = 0.25;
         state.position.x = THREE.MathUtils.clamp(
-          nextPos.x,
+          nextX.x,
           -dims.width / 2 + margin,
           dims.width / 2 - margin
         );
+
+        // 2. Move along Z axis & resolve collision
+        let nextZ = { x: state.position.x, z: state.position.z + dz };
+        for (const p of doc.room.partitions ?? []) {
+          nextZ = resolveCircleRectCollision(nextZ, walkerRadius, partitionRect(p));
+        }
+        for (const f of doc.furniture) {
+          if (!f.visible) continue;
+          const cat = resolveCatalogItem(f.catalogId);
+          if (!cat.collides) continue;
+          const elev = f.elevation ?? cat.elevation;
+          const h = cat.size.h * f.scale.y;
+          if (elev > 1.8 || elev + h < 0.2) continue;
+          nextZ = resolveCircleRectCollision(nextZ, walkerRadius, instanceRect(f, cat));
+        }
         state.position.z = THREE.MathUtils.clamp(
-          nextPos.z,
+          nextZ.z,
           -dims.length / 2 + margin,
           dims.length / 2 - margin
         );
       }
 
-      camera.position.lerp(state.position, 1 - Math.exp(-dt * 18));
+      camera.position.lerp(state.position, 1 - Math.exp(-dt * 20));
       const cosPitch = Math.cos(state.pitch);
       const sinPitch = Math.sin(state.pitch);
       state.lookTarget.set(
-        state.position.x + Math.sin(state.yaw) * cosPitch,
-        state.position.y + sinPitch,
-        state.position.z + Math.cos(state.yaw) * cosPitch
+        camera.position.x + Math.sin(state.yaw) * cosPitch,
+        camera.position.y + sinPitch,
+        camera.position.z + Math.cos(state.yaw) * cosPitch
       );
       camera.lookAt(state.lookTarget);
       return;

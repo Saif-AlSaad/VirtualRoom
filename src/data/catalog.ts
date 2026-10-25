@@ -49,7 +49,7 @@ function item(input: ItemInput): CatalogItem {
     elevation: 0,
     wallMounted: false,
     collides: true,
-    scaleRange: [0.8, 1.2],
+    scaleRange: [0.3, 3.0],
     availability: 'available',
     ...input,
   };
@@ -182,7 +182,7 @@ export const CATALOG: CatalogItem[] = [
     elevation: 1.0,
     wallMounted: true,
     collides: false,
-    scaleRange: [0.7, 1.3],
+    scaleRange: [0.3, 3.0],
   }),
   item({
     id: 'bookshelf',
@@ -205,7 +205,7 @@ export const CATALOG: CatalogItem[] = [
     price: 189,
     finishes: TEXTILE_FINISHES,
     collides: false,
-    scaleRange: [0.5, 1.6],
+    scaleRange: [0.3, 3.0],
   }),
   item({
     id: 'floor-lamp',
@@ -230,7 +230,7 @@ export const CATALOG: CatalogItem[] = [
     model: 'plant',
     price: 69,
     finishes: CERAMIC_FINISHES,
-    scaleRange: [0.6, 1.4],
+    scaleRange: [0.3, 3.0],
   }),
 
   // ── Bedroom ───────────────────────────────────────────────────────────
@@ -300,7 +300,7 @@ export const CATALOG: CatalogItem[] = [
     finishes: wood(),
     clearance: clear(0.75),
     // Wardrobes are the item people most often want custom-sized.
-    scaleRange: [0.6, 2.0],
+    scaleRange: [0.3, 3.0],
   }),
   item({
     id: 'wardrobe-3',
@@ -312,7 +312,7 @@ export const CATALOG: CatalogItem[] = [
     price: 899,
     finishes: wood(),
     clearance: clear(0.75),
-    scaleRange: [0.6, 1.8],
+    scaleRange: [0.3, 3.0],
   }),
   item({
     id: 'dressing-table',
@@ -430,7 +430,7 @@ export const CATALOG: CatalogItem[] = [
     price: 429,
     finishes: wood(),
     clearance: clear(0.9),
-    scaleRange: [0.5, 2.5],
+    scaleRange: [0.3, 3.0],
   }),
   item({
     id: 'kitchen-sink',
