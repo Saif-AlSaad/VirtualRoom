@@ -44,12 +44,13 @@ function CompactDimensionField({
   suffix,
   unit,
   secondary,
+  presets,
   onChange,
   onCommit,
 }: {
   label: string;
   badge?: string;
-  badgeColor?: 'sage' | 'sky' | 'amber' | 'indigo';
+  badgeColor?: 'sage' | 'sky' | 'amber' | 'indigo' | 'stone';
   icon?: React.ReactNode;
   value: number;
   min: number;
@@ -58,6 +59,7 @@ function CompactDimensionField({
   suffix?: string;
   unit: Unit;
   secondary?: string;
+  presets?: Array<{ label: string; value: number }>;
   onChange: (val: number) => void;
   onCommit?: (val: number) => void;
 }) {
@@ -87,21 +89,34 @@ function CompactDimensionField({
 
   const nudgeAmount = unit === 'ft' ? 0.5 : 0.1;
 
-  const badgeStyles = {
-    sage: 'bg-sage-500/15 text-sage-700 dark:bg-sage-500/25 dark:text-sage-300',
-    sky: 'bg-sky-500/15 text-sky-700 dark:bg-sky-500/25 dark:text-sky-300',
-    amber: 'bg-amber-500/15 text-amber-700 dark:bg-amber-500/25 dark:text-amber-300',
-    indigo: 'bg-indigo-500/15 text-indigo-700 dark:bg-indigo-500/25 dark:text-indigo-300',
+  const badgeStyles: Record<string, string> = {
+    sage: 'bg-sage-500/15 text-sage-700 dark:bg-sage-500/25 dark:text-sage-300 ring-1 ring-sage-500/30',
+    sky: 'bg-sky-500/15 text-sky-700 dark:bg-sky-500/25 dark:text-sky-300 ring-1 ring-sky-500/30',
+    amber: 'bg-amber-500/15 text-amber-700 dark:bg-amber-500/25 dark:text-amber-300 ring-1 ring-amber-500/30',
+    indigo: 'bg-indigo-500/15 text-indigo-700 dark:bg-indigo-500/25 dark:text-indigo-300 ring-1 ring-indigo-500/30',
+    stone: 'bg-stone-500/15 text-stone-700 dark:bg-stone-500/25 dark:text-stone-300 ring-1 ring-stone-500/30',
   };
 
+  const accentHexColors: Record<string, string> = {
+    sage: '#588157',
+    sky: '#0284c7',
+    amber: '#d97706',
+    indigo: '#6366f1',
+    stone: '#78716c',
+  };
+
+  const accentHex = accentHexColors[badgeColor] || '#588157';
+  const pct = Math.max(0, Math.min(100, ((display - displayMin) / (displayMax - displayMin)) * 100));
+
   return (
-    <div className="group flex flex-col gap-2 rounded-control border border-ink-200/90 bg-white/70 p-2.5 transition-all duration-150 focus-within:border-sage-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-sage-500/20 dark:border-ink-700/70 dark:bg-ink-800/40 dark:focus-within:border-sage-500 dark:focus-within:bg-ink-850 shadow-subtle hover:border-ink-300 dark:hover:border-ink-700">
-      <div className="flex items-center justify-between text-[11px]">
-        <span className="flex items-center gap-1.5 font-semibold text-ink-700 dark:text-sage-100">
+    <div className="group flex flex-col justify-between gap-2 rounded-panel border border-ink-200/90 bg-white/70 p-2.5 transition-all duration-150 focus-within:border-sage-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-sage-500/20 dark:border-ink-800/80 dark:bg-ink-900/40 dark:focus-within:border-sage-500 dark:focus-within:bg-ink-900 shadow-subtle hover:border-ink-300 dark:hover:border-ink-700">
+      {/* Header Row */}
+      <div className="flex items-center justify-between gap-1.5 text-[11px]">
+        <div className="flex min-w-0 items-center gap-1.5">
           {badge && (
             <span
               className={clsx(
-                'flex h-4 w-4 items-center justify-center rounded font-bold text-[9px] shadow-subtle',
+                'flex h-4 w-4 shrink-0 items-center justify-center rounded font-mono font-bold text-[9px] shadow-xs',
                 badgeStyles[badgeColor]
               )}
             >
@@ -109,20 +124,23 @@ function CompactDimensionField({
             </span>
           )}
           {icon}
-          {label}
-        </span>
+          <span className="truncate font-semibold text-ink-800 dark:text-sage-100">
+            {label}
+          </span>
+        </div>
         {secondary ? (
-          <span className="text-[10px] font-mono text-ink-400 dark:text-ink-500">
+          <span className="shrink-0 rounded bg-ink-100/90 px-1.5 py-0.5 font-mono text-[9.5px] font-medium tabular-nums text-ink-500 dark:bg-ink-800/90 dark:text-ink-400">
             {secondary}
           </span>
         ) : (
-          <span className="text-[10px] font-medium tabular-nums text-ink-400">
+          <span className="shrink-0 text-[10px] font-medium tabular-nums text-ink-400">
             {suffix ?? unitLabel(unit)}
           </span>
         )}
       </div>
 
-      <div className="relative flex items-center">
+      {/* Stepper Input Group */}
+      <div className="group/input relative flex items-center rounded-control border border-ink-200/90 bg-white shadow-xs transition-all focus-within:border-sage-500 focus-within:ring-1 focus-within:ring-sage-500/20 dark:border-ink-700/80 dark:bg-ink-950 hover:border-ink-300 dark:hover:border-ink-600">
         <input
           type="text"
           inputMode="decimal"
@@ -137,33 +155,32 @@ function CompactDimensionField({
             }
             e.stopPropagation();
           }}
-          className="h-7.5 w-full rounded border border-ink-200 bg-white pl-2.5 pr-14 text-caption font-semibold tabular-nums text-ink-900 transition-colors focus:border-sage-500 focus:outline-none dark:border-ink-700 dark:bg-ink-900 dark:text-sage-50"
+          className="h-7 w-full min-w-0 bg-transparent pl-2.5 pr-1 text-[12px] font-bold tabular-nums text-ink-900 focus:outline-none dark:text-sage-50"
         />
-        <div className="absolute right-1 flex items-center gap-0.5">
-          <motion.button
-            whileTap={{ scale: 0.85 }}
+        <span className="shrink-0 px-1 text-[10px] font-bold uppercase tracking-wider text-ink-400 dark:text-ink-500 select-none">
+          {suffix ?? unitLabel(unit)}
+        </span>
+        <div className="flex h-7 items-center border-l border-ink-100 dark:border-ink-800">
+          <button
             type="button"
             onClick={() => nudge(-nudgeAmount)}
-            className="flex h-5 w-4 items-center justify-center rounded text-ink-400 hover:bg-ink-100 hover:text-ink-700 dark:hover:bg-ink-800 dark:hover:text-sage-200 transition-colors"
+            className="flex h-full w-5 items-center justify-center text-ink-400 hover:bg-ink-100 hover:text-ink-700 active:scale-90 dark:text-ink-500 dark:hover:bg-ink-800 dark:hover:text-sage-200 transition-colors"
             title={`Decrease by ${nudgeAmount}`}
           >
-            <span className="text-[12px] font-bold leading-none">−</span>
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.85 }}
+            <span className="text-[13px] font-bold leading-none select-none">−</span>
+          </button>
+          <button
             type="button"
             onClick={() => nudge(+nudgeAmount)}
-            className="flex h-5 w-4 items-center justify-center rounded text-ink-400 hover:bg-ink-100 hover:text-ink-700 dark:hover:bg-ink-800 dark:hover:text-sage-200 transition-colors"
+            className="flex h-full w-5 items-center justify-center border-l border-ink-100 dark:border-ink-800 text-ink-400 hover:bg-ink-100 hover:text-ink-700 active:scale-90 dark:text-ink-500 dark:hover:bg-ink-800 dark:hover:text-sage-200 transition-colors"
             title={`Increase by ${nudgeAmount}`}
           >
-            <span className="text-[12px] font-bold leading-none">+</span>
-          </motion.button>
-          <span className="pointer-events-none ml-0.5 text-[9.5px] font-semibold uppercase text-ink-400 dark:text-ink-500">
-            {suffix ?? unitLabel(unit)}
-          </span>
+            <span className="text-[13px] font-bold leading-none select-none">+</span>
+          </button>
         </div>
       </div>
 
+      {/* Range Slider with dynamic track fill */}
       <div className="pt-0.5">
         <input
           type="range"
@@ -176,9 +193,44 @@ function CompactDimensionField({
             onChange(fromDisplay(val, unit));
           }}
           onPointerUp={() => onCommit?.(value)}
-          className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-ink-200 accent-sage-600 transition-opacity hover:opacity-100 dark:bg-ink-700"
+          style={{
+            background: `linear-gradient(to right, ${accentHex} 0%, ${accentHex} ${pct}%, var(--slider-track-bg) ${pct}%, var(--slider-track-bg) 100%)`,
+            '--slider-thumb-border': accentHex,
+          } as React.CSSProperties}
+          className="range-slider-refined w-full"
         />
       </div>
+
+      {/* Preset Buttons (if provided) */}
+      {presets && presets.length > 0 && (
+        <div className="flex gap-1 pt-0.5">
+          {presets.map((p) => {
+            const active = Math.abs(value - p.value) < 0.04;
+            return (
+              <motion.button
+                whileTap={{ scale: 0.94 }}
+                whileHover={{ y: -0.5 }}
+                key={p.label}
+                type="button"
+                onClick={() => {
+                  onChange(p.value);
+                  onCommit?.(p.value);
+                }}
+                className={clsx(
+                  'flex-1 rounded border py-0.5 text-[9.5px] font-medium transition-all duration-150',
+                  active
+                    ? badgeColor === 'amber'
+                      ? 'border-amber-500/80 bg-amber-50 text-amber-800 shadow-subtle ring-1 ring-amber-500/25 dark:bg-amber-950/60 dark:text-amber-200 font-semibold'
+                      : 'border-sage-500 bg-sage-50 text-sage-800 dark:bg-sage-950/60 dark:text-sage-200 font-semibold shadow-subtle ring-1 ring-sage-500/20'
+                    : 'border-ink-200/80 bg-white/80 text-ink-600 hover:border-ink-300 hover:text-ink-800 dark:border-ink-700/80 dark:bg-ink-800/60 dark:text-ink-300'
+                )}
+              >
+                {p.label}
+              </motion.button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -204,8 +256,8 @@ function WallThicknessControl({
   const step = isFt ? 0.25 : 1;
   const suffix = isFt ? 'in' : 'cm';
   const secondary = isFt
-    ? `≈ ${(thickness * 100).toFixed(0)} cm`
-    : `≈ ${(thickness / M_PER_IN).toFixed(1)}″`;
+    ? `${(thickness * 100).toFixed(0)} cm`
+    : `${(thickness / M_PER_IN).toFixed(1)}″`;
 
   const commitText = () => {
     if (text === null) return;
@@ -242,25 +294,28 @@ function WallThicknessControl({
         { label: '20 cm', m: 0.20 },
       ];
 
+  const accentHex = '#d97706';
+  const pct = Math.max(0, Math.min(100, ((displayVal - minVal) / (maxVal - minVal)) * 100));
+
   return (
-    <div className="group flex flex-col gap-2 rounded-control border border-ink-200/90 bg-white/70 p-2.5 transition-all duration-150 focus-within:border-sage-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-sage-500/20 dark:border-ink-700/70 dark:bg-ink-800/40 dark:focus-within:border-sage-500 dark:focus-within:bg-ink-850 shadow-subtle hover:border-ink-300 dark:hover:border-ink-700">
-      <div className="flex items-center justify-between text-[11px]">
-        <span className="flex items-center gap-1.5 font-semibold text-ink-700 dark:text-sage-100">
-          <span className="flex h-4 w-4 items-center justify-center rounded font-bold text-[9px] bg-amber-500/15 text-amber-700 dark:bg-amber-500/25 dark:text-amber-300 shadow-subtle">
+    <div className="group flex flex-col justify-between gap-2 rounded-panel border border-ink-200/90 bg-white/70 p-2.5 transition-all duration-150 focus-within:border-amber-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-amber-500/20 dark:border-ink-800/80 dark:bg-ink-900/40 dark:focus-within:border-amber-500 dark:focus-within:bg-ink-900 shadow-subtle hover:border-ink-300 dark:hover:border-ink-700">
+      {/* Header Row */}
+      <div className="flex items-center justify-between gap-1.5 text-[11px]">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded font-mono font-bold text-[9px] bg-amber-500/15 text-amber-700 dark:bg-amber-500/25 dark:text-amber-300 ring-1 ring-amber-500/30 shadow-xs">
             T
           </span>
-          <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <rect x="2" y="3" width="12" height="10" rx="1.5" />
-            <path d="M6 3v10M10 3v10" strokeDasharray="2 2" strokeWidth="1.2" />
-          </svg>
-          Thickness
-        </span>
-        <span className="text-[10px] font-mono text-ink-400 dark:text-ink-500">
+          <span className="truncate font-semibold text-ink-800 dark:text-sage-100">
+            Thickness
+          </span>
+        </div>
+        <span className="shrink-0 rounded bg-ink-100/90 px-1.5 py-0.5 font-mono text-[9.5px] font-medium tabular-nums text-ink-500 dark:bg-ink-800/90 dark:text-ink-400">
           {secondary}
         </span>
       </div>
 
-      <div className="relative flex items-center">
+      {/* Stepper Input Group */}
+      <div className="group/input relative flex items-center rounded-control border border-ink-200/90 bg-white shadow-xs transition-all focus-within:border-amber-500 focus-within:ring-1 focus-within:ring-amber-500/20 dark:border-ink-700/80 dark:bg-ink-950 hover:border-ink-300 dark:hover:border-ink-600">
         <input
           type="text"
           inputMode="decimal"
@@ -275,33 +330,32 @@ function WallThicknessControl({
             }
             e.stopPropagation();
           }}
-          className="h-7.5 w-full rounded border border-ink-200 bg-white pl-2.5 pr-14 text-caption font-semibold tabular-nums text-ink-900 transition-colors focus:border-sage-500 focus:outline-none dark:border-ink-700 dark:bg-ink-900 dark:text-sage-50"
+          className="h-7 w-full min-w-0 bg-transparent pl-2.5 pr-1 text-[12px] font-bold tabular-nums text-ink-900 focus:outline-none dark:text-sage-50"
         />
-        <div className="absolute right-1 flex items-center gap-0.5">
-          <motion.button
-            whileTap={{ scale: 0.85 }}
+        <span className="shrink-0 px-1 text-[10px] font-bold uppercase tracking-wider text-ink-400 dark:text-ink-500 select-none">
+          {suffix}
+        </span>
+        <div className="flex h-7 items-center border-l border-ink-100 dark:border-ink-800">
+          <button
             type="button"
             onClick={() => nudge(-nudgeAmount)}
-            className="flex h-5 w-4 items-center justify-center rounded text-ink-400 hover:bg-ink-100 hover:text-ink-700 dark:hover:bg-ink-800 dark:hover:text-sage-200 transition-colors"
+            className="flex h-full w-5 items-center justify-center text-ink-400 hover:bg-ink-100 hover:text-ink-700 active:scale-90 dark:text-ink-500 dark:hover:bg-ink-800 dark:hover:text-sage-200 transition-colors"
             title={`Decrease by ${nudgeAmount}`}
           >
-            <span className="text-[12px] font-bold leading-none">−</span>
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.85 }}
+            <span className="text-[13px] font-bold leading-none select-none">−</span>
+          </button>
+          <button
             type="button"
             onClick={() => nudge(+nudgeAmount)}
-            className="flex h-5 w-4 items-center justify-center rounded text-ink-400 hover:bg-ink-100 hover:text-ink-700 dark:hover:bg-ink-800 dark:hover:text-sage-200 transition-colors"
+            className="flex h-full w-5 items-center justify-center border-l border-ink-100 dark:border-ink-800 text-ink-400 hover:bg-ink-100 hover:text-ink-700 active:scale-90 dark:text-ink-500 dark:hover:bg-ink-800 dark:hover:text-sage-200 transition-colors"
             title={`Increase by ${nudgeAmount}`}
           >
-            <span className="text-[12px] font-bold leading-none">+</span>
-          </motion.button>
-          <span className="pointer-events-none ml-0.5 text-[9.5px] font-semibold uppercase text-ink-400 dark:text-ink-500">
-            {suffix}
-          </span>
+            <span className="text-[13px] font-bold leading-none select-none">+</span>
+          </button>
         </div>
       </div>
 
+      {/* Range Slider with dynamic track fill */}
       <div className="pt-0.5">
         <input
           type="range"
@@ -314,16 +368,21 @@ function WallThicknessControl({
             const metres = isFt ? raw * M_PER_IN : raw / 100;
             onChange(metres);
           }}
-          className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-ink-200 accent-sage-600 transition-opacity hover:opacity-100 dark:bg-ink-700"
+          style={{
+            background: `linear-gradient(to right, ${accentHex} 0%, ${accentHex} ${pct}%, var(--slider-track-bg) ${pct}%, var(--slider-track-bg) 100%)`,
+            '--slider-thumb-border': accentHex,
+          } as React.CSSProperties}
+          className="range-slider-refined w-full"
         />
       </div>
 
+      {/* Preset Buttons */}
       <div className="flex gap-1 pt-0.5">
         {presets.map((p) => {
           const active = Math.abs(thickness - p.m) < 0.015;
           return (
             <motion.button
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.94 }}
               whileHover={{ y: -0.5 }}
               key={p.label}
               type="button"
@@ -331,8 +390,8 @@ function WallThicknessControl({
               className={clsx(
                 'flex-1 rounded border py-0.5 text-[9.5px] font-medium transition-all duration-150',
                 active
-                  ? 'border-sage-500 bg-sage-50 text-sage-800 dark:bg-sage-950/60 dark:text-sage-200 font-semibold shadow-subtle ring-1 ring-sage-500/20'
-                  : 'border-ink-200/80 bg-white/80 text-ink-600 hover:border-sage-400 hover:text-sage-700 dark:border-ink-700/80 dark:bg-ink-800/60 dark:text-ink-300'
+                  ? 'border-amber-500/80 bg-amber-50 text-amber-800 shadow-subtle ring-1 ring-amber-500/25 dark:bg-amber-950/60 dark:text-amber-200 font-semibold'
+                  : 'border-ink-200/80 bg-white/80 text-ink-600 hover:border-ink-300 hover:text-ink-800 dark:border-ink-700/80 dark:bg-ink-800/60 dark:text-ink-300'
               )}
             >
               {p.label}
@@ -1053,38 +1112,45 @@ export function RoomPanel() {
         title="Dimensions"
         icon="ruler"
         action={
-          <span className="inline-flex items-center gap-1 rounded-full bg-sage-500/15 px-2.5 py-0.5 text-[11px] font-semibold tabular-nums text-sage-700 dark:text-sage-300">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-sage-500/15 px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-sage-700 ring-1 ring-sage-500/25 dark:bg-sage-500/25 dark:text-sage-300">
+            <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <rect x="2.5" y="2.5" width="11" height="11" rx="1.5" strokeDasharray="2.5 2.5" />
+            </svg>
             {formatArea(area, unit)}
           </span>
         }
       >
-        {/* Floor dimensions: 2-column W & L with CAD icons */}
+        {/* Floor Footprint (Width × Length) */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-ink-700 dark:text-sage-100">
-              Floor plan (Interior)
+            <div className="flex items-center gap-1.5">
+              <span className="flex h-4 w-4 items-center justify-center rounded bg-sage-500/15 text-sage-700 dark:bg-sage-500/25 dark:text-sage-300">
+                <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2.5" y="2.5" width="11" height="11" rx="1" />
+                </svg>
+              </span>
+              <span className="text-[11px] font-bold tracking-tight text-ink-800 dark:text-sage-100">
+                Floor Footprint
+              </span>
+            </div>
+            <span className="text-[10px] font-mono text-ink-400 dark:text-ink-500">
+              Interior boundary
             </span>
-            <span className="text-[10px] text-ink-400">Usable boundary</span>
           </div>
+
           <div className="grid grid-cols-2 gap-2">
             <CompactDimensionField
               label="Width"
               badge="W"
               badgeColor="sage"
-              icon={
-                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-sage-600 dark:text-sage-400" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path d="M2 8h12M4.5 5.5 2 8l2.5 2.5M11.5 5.5 14 8l-2.5 2.5" />
-                  <path d="M2 3v10M14 3v10" strokeWidth="1.2" opacity="0.6" />
-                </svg>
-              }
               value={dims.width}
               min={ROOM_LIMITS.minWidth}
               max={ROOM_LIMITS.maxWidth}
               unit={unit}
               secondary={
                 unit === 'ft'
-                  ? `≈ ${dims.width.toFixed(2)} m`
-                  : `≈ ${(dims.width / M_PER_FT).toFixed(2)} ft`
+                  ? `${dims.width.toFixed(2)} m`
+                  : `${(dims.width / M_PER_FT).toFixed(1)} ft`
               }
               onChange={(w) => setRoomDimensions({ width: w })}
             />
@@ -1092,51 +1158,56 @@ export function RoomPanel() {
               label="Length"
               badge="L"
               badgeColor="sky"
-              icon={
-                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path d="M8 2v12M5.5 4.5 8 2l2.5 2.5M5.5 11.5 8 14l2.5-2.5" />
-                  <path d="M3 2h10M3 14h10" strokeWidth="1.2" opacity="0.6" />
-                </svg>
-              }
               value={dims.length}
               min={ROOM_LIMITS.minLength}
               max={ROOM_LIMITS.maxLength}
               unit={unit}
               secondary={
                 unit === 'ft'
-                  ? `≈ ${dims.length.toFixed(2)} m`
-                  : `≈ ${(dims.length / M_PER_FT).toFixed(2)} ft`
+                  ? `${dims.length.toFixed(2)} m`
+                  : `${(dims.length / M_PER_FT).toFixed(1)} ft`
               }
               onChange={(l) => setRoomDimensions({ length: l })}
             />
           </div>
         </div>
 
-        {/* Wall & Structural Specs: 2-column Height & Thickness */}
-        <div className="flex flex-col gap-2">
-          <span className="text-[11px] font-semibold text-ink-700 dark:text-sage-100">
-            Wall & vertical structure
-          </span>
+        {/* Vertical Structure (Ceiling Height & Wall Thickness) */}
+        <div className="flex flex-col gap-2 pt-1">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="flex h-4 w-4 items-center justify-center rounded bg-amber-500/15 text-amber-700 dark:bg-amber-500/25 dark:text-amber-300">
+                <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M2 13h12M4 13V3l4-1 4 1v10" />
+                </svg>
+              </span>
+              <span className="text-[11px] font-bold tracking-tight text-ink-800 dark:text-sage-100">
+                Vertical Structure
+              </span>
+            </div>
+            <span className="text-[10px] font-mono text-ink-400 dark:text-ink-500">
+              Ceiling & Wall Mass
+            </span>
+          </div>
+
           <div className="grid grid-cols-2 gap-2">
             <CompactDimensionField
-              label="Wall height"
+              label="Height"
               badge="H"
               badgeColor="amber"
-              icon={
-                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path d="M8 3v10M5 6l3-3 3 3" />
-                  <path d="M2 13h12" strokeWidth="1.8" />
-                </svg>
-              }
               value={dims.height}
               min={ROOM_LIMITS.minHeight}
               max={ROOM_LIMITS.maxHeight}
               unit={unit}
               secondary={
                 unit === 'ft'
-                  ? `≈ ${dims.height.toFixed(2)} m`
-                  : `≈ ${(dims.height / M_PER_FT).toFixed(2)} ft`
+                  ? `${dims.height.toFixed(2)} m`
+                  : `${(dims.height / M_PER_FT).toFixed(1)} ft`
               }
+              presets={ceilingPresets.map((cp) => ({
+                label: cp.label,
+                value: cp.val,
+              }))}
               onChange={(h) => setRoomDimensions({ height: h })}
             />
             <WallThicknessControl
@@ -1145,43 +1216,17 @@ export function RoomPanel() {
               onChange={(t) => setRoomDimensions({ wallThickness: t })}
             />
           </div>
-
-          {/* Quick Ceiling Presets */}
-          <div className="flex items-center gap-1.5 pt-0.5">
-            <div className="flex items-center gap-1 text-[10px] text-ink-400 shrink-0">
-              <svg viewBox="0 0 16 16" className="h-3 w-3 text-amber-500" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M2 3h12M8 13V5M5 8l3-3 3 3" />
-              </svg>
-              <span>Ceiling:</span>
-            </div>
-            <div className="grid grid-cols-4 gap-1 flex-1">
-              {ceilingPresets.map((cp) => {
-                const active = Math.abs(dims.height - cp.val) < 0.04;
-                return (
-                  <motion.button
-                    whileTap={{ scale: 0.94 }}
-                    whileHover={{ y: -0.5 }}
-                    key={cp.label}
-                    type="button"
-                    onClick={() => setRoomDimensions({ height: cp.val })}
-                    className={clsx(
-                      'rounded-control border px-1.5 py-0.5 text-center text-[10px] font-medium transition-all duration-150',
-                      active
-                        ? 'border-amber-500/70 bg-amber-50 text-amber-800 shadow-subtle ring-1 ring-amber-500/20 dark:bg-amber-950/50 dark:text-amber-200 font-semibold'
-                        : 'border-ink-200/80 bg-white/70 text-ink-600 hover:border-ink-300 dark:border-ink-800 dark:bg-ink-800/40 dark:text-ink-400'
-                    )}
-                  >
-                    {cp.label}
-                  </motion.button>
-                );
-              })}
-            </div>
-          </div>
         </div>
 
-        <div className="flex items-center gap-2 rounded-control border border-sage-200/60 bg-sage-50/50 p-2 text-[11px] text-sage-800 dark:border-sage-900/50 dark:bg-sage-950/30 dark:text-sage-300">
-          <Icon name="info" className="h-3.5 w-3.5 shrink-0 text-sage-600 dark:text-sage-400" />
-          <span>Width and length are interior measurements — the usable floor boundary.</span>
+        {/* Interior Footprint Note */}
+        <div className="flex items-start gap-2.5 rounded-panel border border-ink-200/80 bg-ink-50/70 p-2.5 text-[11px] leading-relaxed text-ink-600 transition-colors dark:border-ink-800/80 dark:bg-ink-900/60 dark:text-sage-300/90 shadow-2xs">
+          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded bg-sage-500/15 text-sage-600 dark:bg-sage-500/25 dark:text-sage-300">
+            <Icon name="info" className="h-3 w-3" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <span className="font-semibold text-ink-900 dark:text-sage-100">Interior dimensions:</span>{' '}
+            Width & length represent usable floor boundary. Wall thickness expands outward.
+          </div>
         </div>
       </Section>
 

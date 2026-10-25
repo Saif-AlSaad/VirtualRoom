@@ -44,6 +44,7 @@
     --blueprint-canvas: #EAEFEA;
     --blueprint-interior: #FFFFFF;
     --blueprint-grid: #D8E0D8;
+    --slider-track-bg: #e4e4e7;
   }
 
   .dark {
@@ -87,6 +88,7 @@
     --blueprint-canvas: #141815;
     --blueprint-interior: #191D1A;
     --blueprint-grid: #252B26;
+    --slider-track-bg: #27272a;
   }
 
   html,
@@ -186,6 +188,50 @@
   }
   .scroll-thin::-webkit-scrollbar-track {
     background: transparent;
+  }
+
+  /* Refined CAD Range Slider with smooth accent-bordered thumb */
+  .range-slider-refined {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 5px;
+    border-radius: 9999px;
+    outline: none;
+    cursor: pointer;
+  }
+  .range-slider-refined::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid var(--slider-thumb-border, #588157);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    cursor: pointer;
+  }
+  .range-slider-refined::-webkit-slider-thumb:hover {
+    transform: scale(1.18);
+    box-shadow: 0 0 0 3px rgba(88, 129, 87, 0.2);
+  }
+  .range-slider-refined::-webkit-slider-thumb:active {
+    transform: scale(1.05);
+  }
+  .range-slider-refined::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid var(--slider-thumb-border, #588157);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+  }
+  .dark .range-slider-refined::-webkit-slider-thumb {
+    background: #18181b;
+  }
+  .dark .range-slider-refined::-moz-range-thumb {
+    background: #18181b;
   }
 }
 
