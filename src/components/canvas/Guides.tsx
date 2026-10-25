@@ -5,7 +5,7 @@ import { useDrag } from '@/store/dragStore';
 import { useEditor } from '@/store/editorStore';
 import { useUI } from '@/store/uiStore';
 import { formatLengthShort } from '@/utils/units';
-import { instanceRect } from '@/utils/placement';
+import { instanceRect, partitionRect } from '@/utils/placement';
 import { resolveCatalogItem } from '@/data/catalog';
 
 /**
@@ -135,12 +135,12 @@ export function RoomDimensions({ doc }: { doc: DocumentState }) {
         opacity={0.5}
       />
       <Html position={[0, 0.02, hl + off + 0.12]} center distanceFactor={11} style={{ pointerEvents: 'none' }}>
-        <div className="rounded-control bg-white/90 px-1.5 py-0.5 text-caption font-medium text-ink-700 shadow-subtle">
+        <div className="rounded-control bg-white/95 px-2 py-0.5 text-caption font-medium text-ink-700 shadow-subtle backdrop-blur-xs border border-ink-200/60 dark:border-ink-700/80 dark:bg-ink-900/95 dark:text-sage-100">
           {formatLengthShort(width, unit)}
         </div>
       </Html>
       <Html position={[hw + off + 0.12, 0.02, 0]} center distanceFactor={11} style={{ pointerEvents: 'none' }}>
-        <div className="rounded-control bg-white/90 px-1.5 py-0.5 text-caption font-medium text-ink-700 shadow-subtle">
+        <div className="rounded-control bg-white/95 px-2 py-0.5 text-caption font-medium text-ink-700 shadow-subtle backdrop-blur-xs border border-ink-200/60 dark:border-ink-700/80 dark:bg-ink-900/95 dark:text-sage-100">
           {formatLengthShort(length, unit)}
         </div>
       </Html>
@@ -155,16 +155,26 @@ export function SelectionDimensions({ doc }: { doc: DocumentState }) {
 
   const target = useMemo(() => {
     if (!show || selection.length !== 1) return null;
-    const instance = doc.furniture.find((f) => f.instanceId === selection[0]);
-    if (!instance) return null;
-    const catalog = resolveCatalogItem(instance.catalogId);
-    const rect = instanceRect(instance, catalog);
-    return {
-      instance,
-      rect,
-      height: catalog.size.h * instance.scale.y + catalog.elevation,
-    };
-  }, [selection, doc.furniture, show]);
+    const selectedId = selection[0];
+    const instance = doc.furniture.find((f) => f.instanceId === selectedId);
+    if (instance) {
+      const catalog = resolveCatalogItem(instance.catalogId);
+      const rect = instanceRect(instance, catalog);
+      return {
+        rect,
+        height: catalog.size.h * instance.scale.y + catalog.elevation,
+      };
+    }
+    const partition = (doc.room.partitions ?? []).find((p) => p.id === selectedId);
+    if (partition) {
+      const rect = partitionRect(partition);
+      return {
+        rect,
+        height: partition.height ?? doc.room.dimensions.height,
+      };
+    }
+    return null;
+  }, [selection, doc.furniture, doc.room.partitions, doc.room.dimensions.height, show]);
 
   if (!target) return null;
 
@@ -175,7 +185,7 @@ export function SelectionDimensions({ doc }: { doc: DocumentState }) {
       distanceFactor={10}
       style={{ pointerEvents: 'none' }}
     >
-      <div className="whitespace-nowrap rounded-control bg-sage-800/92 px-2 py-1 text-caption font-medium tabular-nums text-sage-50 shadow-medium">
+      <div className="whitespace-nowrap rounded-control bg-sage-800/95 px-2 py-1 text-caption font-medium tabular-nums text-sage-50 shadow-medium border border-sage-700/50 backdrop-blur-xs">
         {formatLengthShort(target.rect.w, doc.unit)} ×{' '}
         {formatLengthShort(target.rect.d, doc.unit)}
       </div>

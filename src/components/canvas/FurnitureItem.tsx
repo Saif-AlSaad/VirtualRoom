@@ -231,7 +231,7 @@ export function FurnitureItem({
     >
       {/* Clearance footprint, shown for the selected object or globally when
           the user turns the overlay on. */}
-      {hasClearanceZone && showClearance && (selected || !dragging) && (
+      {hasClearanceZone && (showClearance || selected) && (!dragging || selected) && (
         <mesh
           position={[
             (clearance.right - clearance.left) / 2,
@@ -246,7 +246,7 @@ export function FurnitureItem({
           <meshBasicMaterial
             color={severity === 'warning' ? WARNING : ACCENT}
             transparent
-            opacity={0.11}
+            opacity={severity === 'warning' ? 0.24 : 0.12}
             depthWrite={false}
           />
         </mesh>
