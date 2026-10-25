@@ -12,7 +12,7 @@ import {
   WALL_COLORS,
   WALL_PATTERNS,
 } from '@/data/finishes';
-import { ROOM_LIMITS, occupiedFloorArea, totalCost } from '@/utils/placement';
+import { ROOM_LIMITS, evaluatePlacement, occupiedFloorArea, totalCost } from '@/utils/placement';
 import { WALL_LABEL, WALL_SIDES, floorArea, wallLength } from '@/utils/roomGeometry';
 import {
   formatArea,
@@ -24,8 +24,8 @@ import {
   unitLabel,
 } from '@/utils/units';
 import { formatCurrency } from '@/utils/exporters';
-import { Icon } from './Icon';
-import { Button, ColorPicker, IconButton, Section, Segmented, Switch } from './primitives';
+import { Icon, type IconName } from './Icon';
+import { Button, ColorPicker, IconButton, Section, Segmented } from './primitives';
 
 /**
  * Architectural room presets by unit system.
@@ -538,6 +538,108 @@ const PARTITION_PRESETS = [
   },
 ];
 
+// ── Guides & Snapping Switch ──────────────────────────────────────────────
+
+interface StudioSwitchProps {
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  label: string;
+  description?: string;
+  icon?: IconName;
+  badge?: string;
+  badgeVariant?: 'warn' | 'sage';
+}
+
+function StudioSwitch({
+  checked,
+  onChange,
+  label,
+  description,
+  icon,
+  badge,
+  badgeVariant = 'sage',
+}: StudioSwitchProps) {
+  return (
+    <motion.button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      whileHover={{ scale: 1.008 }}
+      whileTap={{ scale: 0.985 }}
+      className={clsx(
+        'group flex w-full items-center justify-between gap-3 rounded-lg p-2 text-left transition-all duration-200',
+        'border border-transparent hover:border-ink-200/70 dark:hover:border-ink-800/70',
+        'hover:bg-ink-100/60 dark:hover:bg-ink-900/40',
+        checked && 'bg-sage-50/50 dark:bg-sage-950/20'
+      )}
+    >
+      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        {icon && (
+          <div
+            className={clsx(
+              'flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors duration-200',
+              checked
+                ? 'bg-sage-600/15 text-sage-600 dark:bg-sage-500/25 dark:text-sage-400'
+                : 'bg-ink-100 text-ink-400 dark:bg-ink-800/80 dark:text-ink-500'
+            )}
+          >
+            <Icon name={icon} className="h-3.5 w-3.5" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span
+              className={clsx(
+                'text-xs font-medium leading-tight transition-colors duration-150',
+                checked
+                  ? 'text-ink-900 dark:text-sage-100 font-semibold'
+                  : 'text-ink-700 dark:text-ink-300'
+              )}
+            >
+              {label}
+            </span>
+            {badge && (
+              <span
+                className={clsx(
+                  'rounded px-1.5 py-0.5 text-[9px] font-semibold leading-none',
+                  badgeVariant === 'warn'
+                    ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                    : 'bg-sage-500/15 text-sage-600 dark:text-sage-400 border border-sage-500/30'
+                )}
+              >
+                {badge}
+              </span>
+            )}
+          </div>
+          {description && (
+            <p className="truncate text-[10px] text-ink-400 dark:text-ink-500 leading-normal mt-0.5">
+              {description}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Animated Switch Track & Thumb */}
+      <div
+        className={clsx(
+          'relative h-5 w-9 shrink-0 rounded-full p-0.5 transition-colors duration-200 ease-out',
+          checked
+            ? 'bg-sage-600 dark:bg-sage-500 shadow-xs shadow-sage-600/30'
+            : 'bg-ink-300 dark:bg-ink-700'
+        )}
+      >
+        <motion.div
+          animate={{ x: checked ? 16 : 0 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 32 }}
+          className="h-4 w-4 rounded-full bg-white shadow-xs"
+        />
+      </div>
+    </motion.button>
+  );
+}
+
 export function RoomPanel() {
   const doc = useEditor((s) => s.doc);
   const setRoomDimensions = useEditor((s) => s.setRoomDimensions);
@@ -580,6 +682,14 @@ export function RoomPanel() {
   });
   const [openingFilter, setOpeningFilter] = useState<'all' | 'door' | 'window'>('all');
   const [finishTab, setFinishTab] = useState<'walls' | 'floor'>('walls');
+
+  const clearanceIssueCount = useMemo(() => {
+    if (!showClearance) return 0;
+    const issues = evaluatePlacement(doc);
+    return issues.filter((i) => i.code === 'clearance').length;
+  }, [doc, showClearance]);
+
+  const activeGuidesCount = (showDimensions ? 1 : 0) + (showClearance ? 1 : 0) + (showGrid ? 1 : 0);
 
   const toggleExpanded = (id: string) => {
     setExpandedIds((prev) => {
@@ -1422,40 +1532,173 @@ export function RoomPanel() {
       </Section>
 
       <Section title="Guides & snapping" icon="magnet" defaultOpen={false}>
-        <Switch label="Show dimensions" checked={showDimensions} onChange={setShowDimensions} />
-        <Switch
-          label="Show clearance zones"
-          description="Space each item needs to be usable"
-          checked={showClearance}
-          onChange={setShowClearance}
-        />
-        <Switch label="Show grid" checked={showGrid} onChange={setShowGrid} />
-        <div className="h-px bg-ink-200 dark:bg-ink-800" />
-        <Switch label="Snap to walls" checked={snap.wall} onChange={(wall) => setSnap({ wall })} />
-        <Switch
-          label="Snap to furniture"
-          checked={snap.furniture}
-          onChange={(furniture) => setSnap({ furniture })}
-        />
-        <Switch label="Snap to grid" checked={snap.grid} onChange={(grid) => setSnap({ grid })} />
-        <div className="flex items-center justify-between">
-          <span className="text-caption font-medium text-ink-500 dark:text-ink-400">
-            Rotation step
-          </span>
-          <Segmented
-            size="sm"
-            label="Rotation snapping"
-            value={String(snap.rotationStep)}
-            options={[
-              { value: '0', label: 'Free' },
-              { value: '15', label: '15°' },
-              { value: '45', label: '45°' },
-              { value: '90', label: '90°' },
-            ]}
-            onChange={(v) => setSnap({ rotationStep: Number(v) })}
+        {/* Canvas Visual Guides */}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between px-1 pb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-ink-400 dark:text-ink-500">
+              Visual Overlays
+            </span>
+            <span className="rounded bg-ink-100 px-1.5 py-0.5 text-[9px] font-semibold text-ink-500 dark:bg-ink-800 dark:text-ink-400 tabular-nums">
+              {activeGuidesCount}/3 active
+            </span>
+          </div>
+
+          <StudioSwitch
+            label="Room & object dimensions"
+            description="Wall spans & selected item boundaries"
+            icon="ruler"
+            checked={showDimensions}
+            onChange={setShowDimensions}
+          />
+          <StudioSwitch
+            label="Clearance zones"
+            description="Usable space & functional footprints"
+            icon="layers"
+            checked={showClearance}
+            onChange={setShowClearance}
+            badge={clearanceIssueCount > 0 ? `${clearanceIssueCount} alert${clearanceIssueCount > 1 ? 's' : ''}` : undefined}
+            badgeVariant={clearanceIssueCount > 0 ? 'warn' : 'sage'}
+          />
+          <StudioSwitch
+            label="Reference coordinate grid"
+            description="1.0-metre CAD floor alignment mesh"
+            icon="grid"
+            checked={showGrid}
+            onChange={setShowGrid}
           />
         </div>
-        <p className="text-[11px] text-ink-400">Hold Alt while dragging to ignore snapping.</p>
+
+        {/* Snapping Separator & Quick Actions */}
+        <div className="flex items-center justify-between px-1 pt-2 pb-0.5 border-t border-ink-200/80 dark:border-ink-800/80 mt-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-ink-400 dark:text-ink-500">
+            Magnetic Snapping
+          </span>
+          <div className="flex items-center gap-1.5 text-[10px]">
+            <button
+              type="button"
+              onClick={() => setSnap({ wall: true, furniture: true, grid: true })}
+              className="font-medium text-sage-600 hover:text-sage-500 dark:text-sage-400 dark:hover:text-sage-300 transition-colors"
+            >
+              All On
+            </button>
+            <span className="text-ink-300 dark:text-ink-700">·</span>
+            <button
+              type="button"
+              onClick={() => setSnap({ wall: false, furniture: false, grid: false })}
+              className="font-medium text-ink-400 hover:text-ink-600 dark:text-ink-500 dark:hover:text-ink-300 transition-colors"
+            >
+              All Off
+            </button>
+          </div>
+        </div>
+
+        {/* Snapping Switches */}
+        <div className="flex flex-col gap-1">
+          <StudioSwitch
+            label="Snap to perimeter walls"
+            description="Flush contact with exterior boundary"
+            icon="snap-face"
+            checked={snap.wall}
+            onChange={(wall) => setSnap({ wall })}
+          />
+          <StudioSwitch
+            label="Snap to other objects"
+            description="Edge & center line alignment guides"
+            icon="cube"
+            checked={snap.furniture}
+            onChange={(furniture) => setSnap({ furniture })}
+          />
+          <StudioSwitch
+            label="Snap to coordinate grid"
+            description="10 cm precision increment increments"
+            icon="magnet"
+            checked={snap.grid}
+            onChange={(grid) => setSnap({ grid })}
+          />
+        </div>
+
+        {/* Rotation Angle Snapping Card */}
+        <div className="flex flex-col gap-2 rounded-lg bg-ink-100/60 p-2.5 dark:bg-ink-900/50 border border-ink-200/70 dark:border-ink-800/80 mt-1">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-ink-200/80 text-ink-600 dark:bg-ink-800 dark:text-ink-400">
+                <Icon name="rotate" className="h-3 w-3" />
+              </div>
+              <span className="text-xs font-semibold text-ink-800 dark:text-sage-100">
+                Rotation Angle Step
+              </span>
+            </div>
+            <span className="text-[10px] font-semibold text-sage-600 dark:text-sage-400 tabular-nums">
+              {snap.rotationStep === 0
+                ? 'Free continuous'
+                : snap.rotationStep === 90
+                ? '90° Orthogonal'
+                : `${snap.rotationStep}° Increments`}
+            </span>
+          </div>
+
+          <div
+            role="radiogroup"
+            aria-label="Rotation snapping"
+            className="relative flex items-center rounded-md bg-ink-200/70 p-0.5 dark:bg-ink-800/80"
+          >
+            {[
+              { value: 0, label: 'Free' },
+              { value: 15, label: '15°' },
+              { value: 45, label: '45°' },
+              { value: 90, label: '90°' },
+            ].map((opt) => {
+              const active = snap.rotationStep === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setSnap({ rotationStep: opt.value })}
+                  className={clsx(
+                    'relative z-10 flex-1 py-1.5 text-center text-caption font-semibold transition-colors duration-150',
+                    active
+                      ? 'text-ink-900 dark:text-sage-50'
+                      : 'text-ink-500 hover:text-ink-800 dark:text-ink-400 dark:hover:text-ink-200'
+                  )}
+                >
+                  {active && (
+                    <motion.div
+                      layoutId="rotation-step-active-pill"
+                      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                      className="absolute inset-0 rounded-[5px] bg-white shadow-xs dark:bg-ink-700 dark:shadow-ink-950/40"
+                    />
+                  )}
+                  <span className="relative z-10">{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Pro Workflow Callout */}
+        <div className="flex items-start gap-2.5 rounded-lg border border-ink-200/70 bg-ink-100/50 p-2.5 text-[11px] text-ink-600 dark:border-ink-800/70 dark:bg-ink-900/30 dark:text-ink-400 mt-0.5">
+          <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-ink-200/80 text-ink-600 dark:bg-ink-800 dark:text-ink-400">
+            <Icon name="keyboard" className="h-3 w-3" />
+          </div>
+          <div className="flex flex-col gap-1 leading-relaxed">
+            <p>
+              Hold{' '}
+              <kbd className="rounded border border-ink-300 bg-white px-1.5 py-0.5 font-mono text-[10px] font-semibold text-ink-800 shadow-2xs dark:border-ink-700 dark:bg-ink-800 dark:text-sage-200">
+                Alt
+              </kbd>{' '}
+              while dragging items or walls to ignore all snapping.
+            </p>
+            <p className="text-[10px] text-ink-400 dark:text-ink-500">
+              Hold{' '}
+              <kbd className="rounded border border-ink-300 bg-white px-1.5 py-0.5 font-mono text-[10px] font-semibold text-ink-800 shadow-2xs dark:border-ink-700 dark:bg-ink-800 dark:text-sage-200">
+                Shift
+              </kbd>{' '}
+              during rotation for smooth continuous free angle.
+            </p>
+          </div>
+        </div>
       </Section>
 
       <Section title="Summary" icon="receipt">

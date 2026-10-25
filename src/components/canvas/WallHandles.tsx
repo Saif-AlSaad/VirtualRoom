@@ -76,8 +76,11 @@ function WallHandle({ side, dims }: WallHandleProps) {
         const delta = (currentPos - dragStart.current.mousePos) * (side === 'north' || side === 'west' ? -2 : 2);
         const rawTarget = dragStart.current.initialDim + delta;
 
-        // Snap to 0.1m increments
-        const snapped = snapToStep(rawTarget, 0.1);
+        const snapSettings = useUI.getState().snap;
+        const freeTransform = ev.altKey || ev.shiftKey;
+        const snapped = !freeTransform && snapSettings.grid
+          ? snapToStep(rawTarget, snapSettings.gridSize || 0.1)
+          : rawTarget;
 
         if (isNorthOrSouth) {
           const clamped = THREE.MathUtils.clamp(snapped, ROOM_LIMITS.minLength, ROOM_LIMITS.maxLength);
