@@ -281,19 +281,6 @@ function WallThicknessControl({
 
   const nudgeAmount = isFt ? 0.5 : 1;
 
-  const presets = isFt
-    ? [
-        { label: '4.5″ Stud', m: 0.1143 },
-        { label: '6″ Ext', m: 0.1524 },
-        { label: '8″ Block', m: 0.2032 },
-      ]
-    : [
-        { label: '10 cm', m: 0.10 },
-        { label: '12 cm', m: 0.12 },
-        { label: '15 cm', m: 0.15 },
-        { label: '20 cm', m: 0.20 },
-      ];
-
   const accentHex = '#d97706';
   const pct = Math.max(0, Math.min(100, ((displayVal - minVal) / (maxVal - minVal)) * 100));
 
@@ -374,30 +361,6 @@ function WallThicknessControl({
           } as React.CSSProperties}
           className="range-slider-refined w-full"
         />
-      </div>
-
-      {/* Preset Buttons */}
-      <div className="flex gap-1 pt-0.5">
-        {presets.map((p) => {
-          const active = Math.abs(thickness - p.m) < 0.015;
-          return (
-            <motion.button
-              whileTap={{ scale: 0.94 }}
-              whileHover={{ y: -0.5 }}
-              key={p.label}
-              type="button"
-              onClick={() => onChange(p.m)}
-              className={clsx(
-                'flex-1 rounded border py-0.5 text-[9.5px] font-medium transition-all duration-150',
-                active
-                  ? 'border-amber-500/80 bg-amber-50 text-amber-800 shadow-subtle ring-1 ring-amber-500/25 dark:bg-amber-950/60 dark:text-amber-200 font-semibold'
-                  : 'border-ink-200/80 bg-white/80 text-ink-600 hover:border-ink-300 hover:text-ink-800 dark:border-ink-700/80 dark:bg-ink-800/60 dark:text-ink-300'
-              )}
-            >
-              {p.label}
-            </motion.button>
-          );
-        })}
       </div>
     </div>
   );
@@ -970,24 +933,6 @@ export function RoomPanel() {
   const ratio = shorterSide > 0 ? longerSide / shorterSide : 1;
   const ratioLabel = ratio < 1.1 ? 'Square' : ratio < 1.35 ? 'Standard' : 'Elongated';
 
-  const ceilingPresets = useMemo(
-    () =>
-      unit === 'm'
-        ? [
-            { label: '2.4 m', val: 2.4 },
-            { label: '2.7 m', val: 2.7 },
-            { label: '3.0 m', val: 3.0 },
-            { label: '3.5 m', val: 3.5 },
-          ]
-        : [
-            { label: '8 ft', val: 2.4384 },
-            { label: '9 ft', val: 2.7432 },
-            { label: '10 ft', val: 3.048 },
-            { label: '12 ft', val: 3.6576 },
-          ],
-    [unit]
-  );
-
   return (
     <>
       {/* ── Architectural Room Overview Card ── */}
@@ -1204,10 +1149,6 @@ export function RoomPanel() {
                   ? `${dims.height.toFixed(2)} m`
                   : `${(dims.height / M_PER_FT).toFixed(1)} ft`
               }
-              presets={ceilingPresets.map((cp) => ({
-                label: cp.label,
-                value: cp.val,
-              }))}
               onChange={(h) => setRoomDimensions({ height: h })}
             />
             <WallThicknessControl
